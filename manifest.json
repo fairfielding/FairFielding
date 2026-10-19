@@ -1,0 +1,9 @@
+{
+  "name": "FairFielding",
+  "short_name": "FairFielding",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#0b1739",
+  "description": "Fair defensive lineup rotations for youth baseball."
+}
