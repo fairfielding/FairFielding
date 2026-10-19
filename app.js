@@ -123,6 +123,55 @@ function combinedScore(game,season,pos,isOF){
  return {need,positionCount};
 }
 
+function buildBenchPlan(roster,innings,fieldCount,batteries,season){
+ const benchPerInning=Math.max(0,roster.length-fieldCount);
+ const totalSlots=benchPerInning*innings;
+ const names=roster.map(p=>p.name);
+ const target={};
+ const base=Math.floor(totalSlots/names.length),extra=totalSlots%names.length;
+
+ // Give unavoidable "extra" bench innings to players with the lowest season bench totals first.
+ const extraOrder=[...names].sort((a,b)=>(season[a]?.bench||0)-(season[b]?.bench||0)||Math.random()-.5);
+ names.forEach(n=>target[n]=base);
+ extraOrder.slice(0,extra).forEach(n=>target[n]++);
+
+ const plan=Array.from({length:innings},()=>[]);
+ const counts=Object.fromEntries(names.map(n=>[n,0]));
+
+ // Fill the most constrained innings first (same size here, but this structure handles locked batteries).
+ const inningOrder=[...Array(innings).keys()].sort((a,b)=>{
+  const ea=names.filter(n=>n!==batteries[a][0]&&n!==batteries[a][1]).length;
+  const eb=names.filter(n=>n!==batteries[b][0]&&n!==batteries[b][1]).length;
+  return ea-eb;
+ });
+
+ for(const inn of inningOrder){
+  const locked=new Set(batteries[inn]);
+  for(let slot=0;slot<benchPerInning;slot++){
+   let cand=names.filter(n=>!locked.has(n)&&!plan[inn].includes(n)&&counts[n]<target[n]);
+
+   // If exact targets are blocked by P/C locks, allow the least-over-target eligible player.
+   if(!cand.length){
+    cand=names.filter(n=>!locked.has(n)&&!plan[inn].includes(n));
+   }
+
+   cand.sort((a,b)=>{
+    const aPrev=inn>0&&plan[inn-1].includes(a)?1:0;
+    const bPrev=inn>0&&plan[inn-1].includes(b)?1:0;
+    const aNeed=(target[a]-counts[a]),bNeed=(target[b]-counts[b]);
+    const aSeason=season[a]?.bench||0,bSeason=season[b]?.bench||0;
+    return aPrev-bPrev || bNeed-aNeed || counts[a]-counts[b] || aSeason-bSeason || Math.random()-.5;
+   });
+
+   if(cand[0]){
+    plan[inn].push(cand[0]);
+    counts[cand[0]]++;
+   }
+  }
+ }
+ return {plan,counts,target};
+}
+
 function generate(){
  const roster=activePlayers();
  const innings=+document.getElementById("innings").value;
@@ -149,28 +198,21 @@ function generate(){
   season[p.name]=seasonStat(p.name);
  });
 
+ const benchInfo=buildBenchPlan(roster,innings,fieldCount,batteries,season);
  const lineups=[],warnings=[];
 
  for(let inn=0;inn<innings;inn++){
   const P=batteries[inn][0],C=batteries[inn][1];
   const assigned={P,C},used=new Set([P,C]);
+  const benchNames=benchInfo.plan[inn]||[];
+  const bench=roster.filter(p=>benchNames.includes(p.name));
+  bench.forEach(p=>used.add(p.name));
 
   for(const [pos,n] of [["P",P],["C",C]]){
    stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;
    stats[n].inf++;
+   stats[n].lastPos=pos;
   }
-
-  const benchCount=Math.max(0,roster.length-fieldCount);
-  let bc=roster.filter(p=>!used.has(p.name)).sort((a,b)=>{
-   const A=stats[a.name],B=stats[b.name],SA=season[a.name],SB=season[b.name];
-   const aBench=A.bench+SA.bench,bBench=B.bench+SB.bench;
-   const aPlayed=A.inf+A.out+SA.inf+SA.out,bPlayed=B.inf+B.out+SB.inf+SB.out;
-   return (A.lastPos==="BENCH")-(B.lastPos==="BENCH")
-    ||aBench-bBench||aPlayed-bPlayed||Math.random()-.5;
-  });
-
-  const bench=bc.slice(0,benchCount);
-  bench.forEach(p=>used.add(p.name));
 
   for(const pos of POSITIONS.slice(2)){
    let cand=roster.filter(p=>!used.has(p.name)&&!(pos==="1B"&&p.no1b));
@@ -179,11 +221,26 @@ function generate(){
    cand.sort((a,b)=>{
     const A=stats[a.name],B=stats[b.name],SA=season[a.name],SB=season[b.name];
     const isOF=OF.includes(pos);
-    const ca=combinedScore(A,SA,pos,isOF),cb=combinedScore(B,SB,pos,isOF);
-    return (A.lastPos===pos)-(B.lastPos===pos)
-     ||ca.positionCount-cb.positionCount
-     ||ca.need-cb.need
-     ||Math.random()-.5;
+
+    // GAME fairness is primary: favor the side (INF/OF) the player has had less of today.
+    const gameNeedA=isOF?A.out-A.inf:A.inf-A.out;
+    const gameNeedB=isOF?B.out-B.inf:B.inf-B.out;
+
+    // Avoid repeating the exact same position and spread exact positions within this game.
+    const repeatA=A.lastPos===pos?1:0,repeatB=B.lastPos===pos?1:0;
+    const gamePosA=A.positions[pos]||0,gamePosB=B.positions[pos]||0;
+
+    // SEASON history only breaks close ties/corrects long-term imbalance.
+    const seasonNeedA=isOF?(SA.out||0)-(SA.inf||0):(SA.inf||0)-(SA.out||0);
+    const seasonNeedB=isOF?(SB.out||0)-(SB.inf||0):(SB.inf||0)-(SB.out||0);
+    const seasonPosA=SA.positions?.[pos]||0,seasonPosB=SB.positions?.[pos]||0;
+
+    return gameNeedA-gameNeedB
+      || repeatA-repeatB
+      || gamePosA-gamePosB
+      || seasonNeedA-seasonNeedB
+      || seasonPosA-seasonPosB
+      || Math.random()-.5;
    });
 
    if(cand[0]){
@@ -196,8 +253,8 @@ function generate(){
    if(pos!=="P"&&pos!=="C"){
     stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;
     if(OF.includes(pos))stats[n].out++;else stats[n].inf++;
+    stats[n].lastPos=pos;
    }
-   stats[n].lastPos=pos;
   });
 
   bench.forEach(p=>{
@@ -213,6 +270,12 @@ function generate(){
    warnings.push(`${p.name} was marked No 1B but had to be used there because no eligible player was available.`);
  });
 
+ const benchValues=Object.values(stats).map(s=>s.bench);
+ const benchSpread=Math.max(...benchValues)-Math.min(...benchValues);
+ if(benchSpread>1){
+  warnings.push("Locked pitcher/catcher assignments prevented a perfectly even bench rotation.");
+ }
+
  currentGame={
   team:document.getElementById("teamName").value||"Team",
   stats:JSON.parse(JSON.stringify(stats)),
@@ -222,7 +285,6 @@ function generate(){
 
  renderResults(lineups,stats,warnings,fieldCount);
 }
-
 function renderResults(lineups,stats,warnings,fieldCount){
  const results=document.getElementById("results");
  const warn=document.getElementById("warnings");
