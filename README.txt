@@ -1,6 +1,5 @@
-FairFielding v0.1
+FairFielding v0.2
 
-Static web app ready for Vercel deployment.
-Open index.html locally to preview, or deploy the folder/files to Vercel.
-
-Demo roster and pitching/catching plan are preloaded from the Comets lineup work.
+Adds selectable 9- or 10-player defensive fields.
+9: P C 1B 2B 3B SS LF CF RF
+10: P C 1B 2B 3B SS LF LC RC RF
