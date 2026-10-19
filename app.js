@@ -258,7 +258,7 @@ function generate(){
     const A=stats[a.name],B=stats[b.name],SA=season[a.name],SB=season[b.name];
     const isOF=OF.includes(pos);
 
-    // Season balance first, including assignments already made in this game.
+    // Season INF/OF balance is primary, including assignments already made today.
     const totalInfA=(SA.inf||0)+A.inf,totalOutA=(SA.out||0)+A.out;
     const totalInfB=(SB.inf||0)+B.inf,totalOutB=(SB.out||0)+B.out;
     const seasonNeedA=isOF?totalOutA-totalInfA:totalInfA-totalOutA;
@@ -340,7 +340,9 @@ function renderResults(lineups,stats,warnings,fieldCount){
  });
 
  const h=loadHistory();
- summary.innerHTML=`<div class="fairness-head"><div><h3>Fairness check</h3><p>Projected season totals after this game</p></div><span class="fairness-chip">Season-aware</span></div><div class="summary-grid">`+Object.entries(stats).map(([n,s])=>{const old=seasonStat(n),bi=(old.inf||0)+s.inf,bo=(old.out||0)+s.out,d=bi-bo,status=d>=2?"Needs OF":d<=-2?"Needs INF":"Balanced",cls=d>=2?"needs-of":d<=-2?"needs-inf":"balanced";return `<div class="stat"><div class="stat-top"><b>${esc(n)}</b><span class="balance-badge ${cls}">${status}</span></div><span>Game · Bench ${s.bench} · INF ${s.inf} · OF ${s.out}</span><strong>Season · Bench ${(old.bench||0)+s.bench} · INF ${bi} · OF ${bo}</strong></div>`}).join("")+`</div>`;
+ summary.innerHTML=`<h3>Fairness check</h3><div class="summary-grid">`+
+  Object.entries(stats).map(([n,s])=>{
+   const old=h[n]||emptyStat();
    const seasonInf=old.inf+s.inf,seasonOut=old.out+s.out,seasonBench=old.bench+s.bench;
    return `<div class="stat"><b>${esc(n)}</b>
     <span>Game: Bench ${s.bench} • INF ${s.inf} • OF ${s.out}</span>
