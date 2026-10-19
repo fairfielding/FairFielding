@@ -258,23 +258,21 @@ function generate(){
     const A=stats[a.name],B=stats[b.name],SA=season[a.name],SB=season[b.name];
     const isOF=OF.includes(pos);
 
-    // GAME fairness is primary: favor the side (INF/OF) the player has had less of today.
+    // Season balance first, including assignments already made in this game.
+    const totalInfA=(SA.inf||0)+A.inf,totalOutA=(SA.out||0)+A.out;
+    const totalInfB=(SB.inf||0)+B.inf,totalOutB=(SB.out||0)+B.out;
+    const seasonNeedA=isOF?totalOutA-totalInfA:totalInfA-totalOutA;
+    const seasonNeedB=isOF?totalOutB-totalInfB:totalInfB-totalOutB;
     const gameNeedA=isOF?A.out-A.inf:A.inf-A.out;
     const gameNeedB=isOF?B.out-B.inf:B.inf-B.out;
-
-    // Avoid repeating the exact same position and spread exact positions within this game.
     const repeatA=A.lastPos===pos?1:0,repeatB=B.lastPos===pos?1:0;
     const gamePosA=A.positions[pos]||0,gamePosB=B.positions[pos]||0;
-
-    // SEASON history only breaks close ties/corrects long-term imbalance.
-    const seasonNeedA=isOF?(SA.out||0)-(SA.inf||0):(SA.inf||0)-(SA.out||0);
-    const seasonNeedB=isOF?(SB.out||0)-(SB.inf||0):(SB.inf||0)-(SB.out||0);
     const seasonPosA=SA.positions?.[pos]||0,seasonPosB=SB.positions?.[pos]||0;
 
-    return gameNeedA-gameNeedB
+    return seasonNeedA-seasonNeedB
+      || gameNeedA-gameNeedB
       || repeatA-repeatB
       || gamePosA-gamePosB
-      || seasonNeedA-seasonNeedB
       || seasonPosA-seasonPosB
       || Math.random()-.5;
    });
@@ -342,9 +340,7 @@ function renderResults(lineups,stats,warnings,fieldCount){
  });
 
  const h=loadHistory();
- summary.innerHTML=`<h3>Fairness check</h3><div class="summary-grid">`+
-  Object.entries(stats).map(([n,s])=>{
-   const old=h[n]||emptyStat();
+ summary.innerHTML=`<div class="fairness-head"><div><h3>Fairness check</h3><p>Projected season totals after this game</p></div><span class="fairness-chip">Season-aware</span></div><div class="summary-grid">`+Object.entries(stats).map(([n,s])=>{const old=seasonStat(n),bi=(old.inf||0)+s.inf,bo=(old.out||0)+s.out,d=bi-bo,status=d>=2?"Needs OF":d<=-2?"Needs INF":"Balanced",cls=d>=2?"needs-of":d<=-2?"needs-inf":"balanced";return `<div class="stat"><div class="stat-top"><b>${esc(n)}</b><span class="balance-badge ${cls}">${status}</span></div><span>Game · Bench ${s.bench} · INF ${s.inf} · OF ${s.out}</span><strong>Season · Bench ${(old.bench||0)+s.bench} · INF ${bi} · OF ${bo}</strong></div>`}).join("")+`</div>`;
    const seasonInf=old.inf+s.inf,seasonOut=old.out+s.out,seasonBench=old.bench+s.bench;
    return `<div class="stat"><b>${esc(n)}</b>
     <span>Game: Bench ${s.bench} • INF ${s.inf} • OF ${s.out}</span>
