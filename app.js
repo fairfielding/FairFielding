@@ -127,51 +127,87 @@ function buildBenchPlan(roster,innings,fieldCount,batteries,season){
  const benchPerInning=Math.max(0,roster.length-fieldCount);
  const totalSlots=benchPerInning*innings;
  const names=roster.map(p=>p.name);
- const target={};
  const base=Math.floor(totalSlots/names.length),extra=totalSlots%names.length;
 
- // Give unavoidable "extra" bench innings to players with the lowest season bench totals first.
- const extraOrder=[...names].sort((a,b)=>(season[a]?.bench||0)-(season[b]?.bench||0)||Math.random()-.5);
- names.forEach(n=>target[n]=base);
+ // Season history decides who should receive unavoidable extra bench innings.
+ const extraOrder=[...names].sort((a,b)=>
+  (season[a]?.bench||0)-(season[b]?.bench||0) || a.localeCompare(b)
+ );
+ const target=Object.fromEntries(names.map(n=>[n,base]));
  extraOrder.slice(0,extra).forEach(n=>target[n]++);
 
+ // Search the whole game, not inning-by-inning greedily.
+ // This guarantees an exact target whenever a valid schedule exists.
  const plan=Array.from({length:innings},()=>[]);
- const counts=Object.fromEntries(names.map(n=>[n,0]));
+ const remaining={...target};
 
- // Fill the most constrained innings first (same size here, but this structure handles locked batteries).
- const inningOrder=[...Array(innings).keys()].sort((a,b)=>{
-  const ea=names.filter(n=>n!==batteries[a][0]&&n!==batteries[a][1]).length;
-  const eb=names.filter(n=>n!==batteries[b][0]&&n!==batteries[b][1]).length;
-  return ea-eb;
+ function combos(arr,k,start=0,pick=[],out=[]){
+  if(pick.length===k){out.push([...pick]);return out}
+  for(let i=start;i<=arr.length-(k-pick.length);i++){
+   pick.push(arr[i]);combos(arr,k,i+1,pick,out);pick.pop();
+  }
+  return out;
+ }
+
+ const options=Array.from({length:innings},(_,inn)=>{
+  const locked=new Set(batteries[inn]);
+  return combos(names.filter(n=>!locked.has(n)),benchPerInning);
  });
 
- for(const inn of inningOrder){
-  const locked=new Set(batteries[inn]);
-  for(let slot=0;slot<benchPerInning;slot++){
-   let cand=names.filter(n=>!locked.has(n)&&!plan[inn].includes(n)&&counts[n]<target[n]);
+ // Most constrained innings first.
+ const order=[...Array(innings).keys()].sort((a,b)=>options[a].length-options[b].length);
 
-   // If exact targets are blocked by P/C locks, allow the least-over-target eligible player.
-   if(!cand.length){
-    cand=names.filter(n=>!locked.has(n)&&!plan[inn].includes(n));
-   }
+ function search(depth){
+  if(depth===order.length)return Object.values(remaining).every(v=>v===0);
+  const inn=order[depth];
+  const prev=inn>0?new Set(plan[inn-1]):new Set();
 
-   cand.sort((a,b)=>{
+  const valid=options[inn].filter(group=>group.every(n=>remaining[n]>0));
+  valid.sort((A,B)=>{
+   const consecA=A.reduce((s,n)=>s+(prev.has(n)?1:0),0);
+   const consecB=B.reduce((s,n)=>s+(prev.has(n)?1:0),0);
+   const needA=A.reduce((s,n)=>s+remaining[n],0);
+   const needB=B.reduce((s,n)=>s+remaining[n],0);
+   const seasonA=A.reduce((s,n)=>s+(season[n]?.bench||0),0);
+   const seasonB=B.reduce((s,n)=>s+(season[n]?.bench||0),0);
+   return consecA-consecB || needB-needA || seasonA-seasonB ||
+    A.join("|").localeCompare(B.join("|"));
+  });
+
+  for(const group of valid){
+   plan[inn]=group;
+   group.forEach(n=>remaining[n]--);
+   if(search(depth+1))return true;
+   group.forEach(n=>remaining[n]++);
+   plan[inn]=[];
+  }
+  return false;
+ }
+
+ const exact=search(0);
+
+ // Rare fallback: if exact equality is mathematically blocked by P/C locks,
+ // build the fairest available plan and allow the warning.
+ if(!exact){
+  const counts=Object.fromEntries(names.map(n=>[n,0]));
+  for(let inn=0;inn<innings;inn++){
+   const locked=new Set(batteries[inn]);
+   const eligible=names.filter(n=>!locked.has(n));
+   eligible.sort((a,b)=>{
     const aPrev=inn>0&&plan[inn-1].includes(a)?1:0;
     const bPrev=inn>0&&plan[inn-1].includes(b)?1:0;
-    const aNeed=(target[a]-counts[a]),bNeed=(target[b]-counts[b]);
-    const aSeason=season[a]?.bench||0,bSeason=season[b]?.bench||0;
-    return aPrev-bPrev || bNeed-aNeed || counts[a]-counts[b] || aSeason-bSeason || Math.random()-.5;
+    return counts[a]-counts[b] || aPrev-bPrev ||
+     (season[a]?.bench||0)-(season[b]?.bench||0) || a.localeCompare(b);
    });
-
-   if(cand[0]){
-    plan[inn].push(cand[0]);
-    counts[cand[0]]++;
-   }
+   plan[inn]=eligible.slice(0,benchPerInning);
+   plan[inn].forEach(n=>counts[n]++);
   }
+  return {plan,counts,target,exact:false};
  }
- return {plan,counts,target};
-}
 
+ const counts=Object.fromEntries(names.map(n=>[n,target[n]]));
+ return {plan,counts,target,exact:true};
+}
 function generate(){
  const roster=activePlayers();
  const innings=+document.getElementById("innings").value;
@@ -270,10 +306,8 @@ function generate(){
    warnings.push(`${p.name} was marked No 1B but had to be used there because no eligible player was available.`);
  });
 
- const benchValues=Object.values(stats).map(s=>s.bench);
- const benchSpread=Math.max(...benchValues)-Math.min(...benchValues);
- if(benchSpread>1){
-  warnings.push("Locked pitcher/catcher assignments prevented a perfectly even bench rotation.");
+ if(!benchInfo.exact){
+  warnings.push("Locked pitcher/catcher assignments prevent a perfectly even bench rotation.");
  }
 
  currentGame={

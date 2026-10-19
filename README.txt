@@ -1,17 +1,12 @@
-FairFielding v0.4
+FairFielding v0.5
 
-Fair defensive lineup generator for youth baseball.
-
-v0.4 fairness fix:
-- Plans bench assignments across the WHOLE game before assigning field positions.
-- Current-game bench equality is the top priority.
-- Example: 12 active players, 10 fielders, 6 innings = 12 bench slots, so the target is exactly 1 bench inning per player whenever P/C locks permit.
-- Avoids consecutive bench innings when possible.
-- Season bench history decides who receives unavoidable extra bench innings.
-- Current-game INF/OF balance is prioritized before season history.
-- Season history is then used to correct long-term INF/OF and position imbalances.
-- Keeps pitcher/catcher locks, No 1B restrictions, 9/10-player layouts, Save Game, and Season History.
+v0.5
+- Replaced the greedy/random bench planner with a whole-game backtracking scheduler.
+- If a perfectly even bench schedule exists around the locked P/C assignments, FairFielding finds it.
+- The P/C warning now appears only when an exact target schedule is actually impossible.
+- Removed random bench tie-breaking that could produce different fairness from identical inputs.
+- Keeps current-game-first INF/OF fairness and season-history correction.
+- Visual refresh: stronger baseball branding, richer header, cards, buttons, battery rows, lineup panels, and fairness/history styling.
 - Default roster includes JW, Gino, and James.
 
-Important:
-Season history is stored on the device/browser where the game is saved. Clearing website data or using another device/browser will not carry the history over.
+Season history remains stored locally on the device/browser.
