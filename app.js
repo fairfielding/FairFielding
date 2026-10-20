@@ -454,7 +454,7 @@ document.getElementById("addPlayer").onclick=()=>{players.push({id:Date.now(),na
 document.getElementById("innings").onchange=()=>renderBattery(false);
 document.getElementById("fielders").onchange=()=>{updatePositionNote();currentGame=null;document.getElementById("resultsCard").classList.add("hidden")};
 document.getElementById("generate").onclick=generate;
-document.getElementById("reset").onclick=resetDemo;
+document.getElementById("reset").onclick=()=>{resetDemo();renderPlayers();renderBattery();renderHistory();};
 document.getElementById("saveGame").onclick=saveCurrentGame;
 document.getElementById("resetHistory").onclick=resetSeasonHistory;
 document.getElementById("openGameDay").onclick=openGameDay;
@@ -469,3 +469,6 @@ document.getElementById("gdComplete").onclick=completeCurrentInning;
 document.getElementById("gdSheet").onclick=e=>{if(e.target.id==="gdSheet")e.currentTarget.classList.add("hidden")};
 
 resetDemo();
+renderPlayers();
+renderBattery();
+renderHistory();
