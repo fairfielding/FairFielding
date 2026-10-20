@@ -12,10 +12,10 @@
 <!-- stadium trees -->
 <path d="M0 210 Q80 145 145 205 Q220 125 300 202 Q370 140 450 205 Q540 120 620 205 Q720 130 790 205 Q850 150 900 210 V300 H0Z" fill="#071d20"/>
 <!-- light glows -->
-<circle cx="35" cy="165" r="145" fill="url(#light)"/><circle cx="865" cy="165" r="145" fill="url(#light)"/>
+<circle cx="35" cy="165" r="118" fill="url(#light)" opacity=".62"/><circle cx="865" cy="165" r="118" fill="url(#light)" opacity=".62"/>
 <!-- fence/warning track -->
-<path d="M20 320 Q450 135 880 320 L850 382 Q450 220 50 382Z" fill="#4e2e21"/>
-<path d="M22 307 Q450 122 878 307 L872 338 Q450 165 28 338Z" fill="#082c3a" stroke="#e2b63f" stroke-width="7"/>
+<path d="M20 320 Q450 135 880 320 L850 382 Q450 220 50 382Z" fill="#3b2c29"/>
+<path d="M22 307 Q450 122 878 307 L872 338 Q450 165 28 338Z" fill="#092b3d" stroke="#b99245" stroke-width="4"/>
 <g opacity=".45" stroke="#5f8190" stroke-width="2">
  <path d="M80 285v55M160 250v65M250 215v70M350 185v78M450 174v82M550 185v78M650 215v70M740 250v65M820 285v55"/>
 </g>

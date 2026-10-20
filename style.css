@@ -85,7 +85,7 @@ body{background:linear-gradient(180deg,#eef3f9 0%,#f7f9fc 42%,#eef3f9 100%)}head
 .gd-stadium-glow.left{left:-70px}.gd-stadium-glow.right{right:-70px}
 .gd-field{
  width:100%;aspect-ratio:900/1040;border-radius:0;border:0;
- background:url("field-stadium.svg") center/cover no-repeat;
+ background:url("field-stadium.svg?v=075") center/cover no-repeat;
  box-shadow:none;overflow:hidden
 }
 .field-grass-ring,.field-foul,.field-dirt,.field-infield-grass,.field-base,.field-mound{display:none}
@@ -133,4 +133,71 @@ body{background:linear-gradient(180deg,#eef3f9 0%,#f7f9fc 42%,#eef3f9 100%)}head
 @media(max-width:390px){
  .gd-scoreboard{grid-template-columns:1fr 136px;padding-left:13px;padding-right:13px}
  .gd-team{font-size:1.55rem}.gd-player{transform:translate(-50%,-50%) scale(.93)}
+}
+
+/* v0.7.5 — final Stadium polish */
+.gd-scoreboard{
+  padding-top:12px;
+  padding-bottom:12px;
+}
+.gd-team{font-size:1.62rem}
+.gd-team-stripe{height:4px;margin:4px 0 6px}
+.gd-inning-control{height:72px}
+.gd-innings{padding-top:7px;padding-bottom:7px}
+
+.gd-field{
+  aspect-ratio:900/990;
+  background-position:center 48%;
+}
+.gd-stadium-glow{
+  opacity:.38;
+  top:-35px;
+  width:115px;
+  height:145px;
+}
+.gd-player{
+  min-width:68px;
+  max-width:100px;
+}
+.gd-pos{
+  padding:2px 7px;
+  font-size:.49rem;
+  border-color:#278fda;
+  background:linear-gradient(180deg,#0b5898,#073667);
+}
+.gd-name{
+  min-width:70px;
+  max-width:100px;
+  padding:5px 8px;
+  font-size:.64rem;
+  border-color:#b38c4b;
+  border-radius:8px;
+}
+.gd-player.battery .gd-name{
+  border-color:#3d9ee0;
+}
+.gd-bench-card{
+  padding:10px 14px 11px;
+  background:
+    linear-gradient(90deg,rgba(11,51,88,.18),transparent 30%,transparent 70%,rgba(11,51,88,.18)),
+    linear-gradient(rgba(2,14,27,.94),rgba(2,14,27,.98));
+}
+.gd-bench-title{margin-bottom:7px}
+.gd-bench-title span{font-size:.63rem}
+.gd-bench span{
+  padding:6px 11px;
+  font-size:.65rem;
+  border-color:#24577f;
+}
+.gd-bottom-nav{
+  height:calc(56px + env(safe-area-inset-bottom));
+}
+.gd-bottom-nav button{
+  font-size:.54rem;
+}
+@media(max-width:390px){
+  .gd-team{font-size:1.48rem}
+  .gd-scoreboard{grid-template-columns:1fr 128px}
+  .gd-inning-control{height:68px}
+  .gd-player{transform:translate(-50%,-50%) scale(.90)}
 }
