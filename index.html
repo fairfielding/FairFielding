@@ -27,28 +27,28 @@
   <div class="grid three">
     <label>Team name<input id="teamName" value="Comets" /></label>
     <label>Innings<select id="innings"><option>4</option><option>5</option><option selected>6</option></select></label>
-    <label>Players on field<select id="fielders"><option value="9">9</option><option value="10" selected>10</option></select></label>
+    <label>Defensive players<select id="fielders"><option value="9">9</option><option value="10" selected>10</option></select></label>
   </div>
   <div class="position-note" id="positionNote"></div>
 </section>
 
 <section class="card">
   <div class="section-title"><div><small>STEP 2</small><h2>Players</h2></div><button class="secondary small" id="addPlayer">+ Add</button></div>
-  <p class="hint">Uncheck a player if they're absent. “No 1B” prevents the generator from putting that player at first base.</p>
+  <p class="hint">Uncheck a player if they're absent. <b>No 1B</b> means that player should not be assigned to first base.</p>
   <div id="players"></div>
 </section>
 
 <section class="card">
-  <div class="section-title"><div><small>STEP 3</small><h2>Pitcher & catcher plan</h2></div></div>
-  <p class="hint">Lock in your battery for each inning. FairFielding fills the rest.</p>
+  <div class="section-title"><div><small>STEP 3</small><h2>Pitchers & Catchers</h2></div></div>
+  <p class="hint">Choose your pitcher and catcher for each inning. FairFielding will build the rest of the defense around them.</p>
   <div id="battery"></div>
 </section>
 
-<button class="primary generate-btn" id="generate"><span>⚾</span> Generate Fair Lineup</button>
+<button class="primary generate-btn" id="generate"><span>⚾</span> Generate Fielding Rotation</button>
 <button class="secondary full" id="reset">Reset Demo</button>
 
 <section class="card hidden" id="resultsCard">
-  <div class="section-title"><div><small>LINEUP</small><h2 id="resultTitle">Defensive rotation</h2></div></div>
+  <div class="section-title"><div><small>ROTATION</small><h2 id="resultTitle">Defensive Rotation</h2></div></div>
   <div id="warnings"></div>
   <button class="primary game-day-launch" id="openGameDay">⚾ Open Game Day</button>
   <p class="hint center game-day-hint">View the generated defense on the field and swipe through innings.</p>
@@ -68,7 +68,7 @@
 </section>
 </main>
 
-<footer>FairFielding v0.7.0 • Game Day</footer>
+<footer>FairFielding v0.7.1 • Game Day</footer>
 </div>
 
 <section id="gameDayView" class="game-day hidden" aria-label="Game Day">

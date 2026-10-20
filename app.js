@@ -60,7 +60,7 @@ function renderBattery(useDemo=false){
  for(let i=0;i<innings;i++){
   const row=document.createElement("div");row.className="battery-row";
   const opts=`<option value="">Choose…</option>`+names.map(n=>`<option>${esc(n)}</option>`).join("");
-  row.innerHTML=`<b>Inn ${i+1}</b><label>P<select class="pitcher">${opts}</select></label><label>C<select class="catcher">${opts}</select></label>`;
+  row.innerHTML=`<b>Inn ${i+1}</b><label>Pitcher<select class="pitcher">${opts}</select></label><label>Catcher<select class="catcher">${opts}</select></label>`;
   if(old[i]){row.querySelector(".pitcher").value=old[i][0]||"";row.querySelector(".catcher").value=old[i][1]||""}
   box.appendChild(row);
  }
@@ -136,7 +136,7 @@ function generate(){
 }
 function renderResults(lineups,stats,warnings,fieldCount){
  const results=document.getElementById("results"),warn=document.getElementById("warnings"),summary=document.getElementById("summary");
- document.getElementById("resultTitle").textContent=`${document.getElementById("teamName").value||"Team"} • ${fieldCount}-player defensive rotation`;
+ document.getElementById("resultTitle").textContent=`${document.getElementById("teamName").value||"Team"} • ${fieldCount}-player Defensive Rotation`;
  warn.innerHTML=warnings.length?warnings.map(w=>`<div class="warning">${esc(w)}</div>`).join(""):`<div class="ok">✓ ${fieldCount}-player rotation generated with your locked pitcher/catcher assignments, 1B restrictions, and season fairness history.</div>`;
  results.innerHTML="";
  lineups.forEach((l,i)=>{
