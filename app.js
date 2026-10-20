@@ -107,30 +107,152 @@ function generate(){
   if(batteries[i][0]===batteries[i][1]){alert(`Inning ${i+1}: pitcher and catcher must be different.`);return}
  }
  const stats={},season={};roster.forEach(p=>{stats[p.name]=emptyStat();season[p.name]=seasonStat(p.name)});
- const benchInfo=buildBenchPlan(roster,innings,fieldCount,batteries,season),lineups=[],warnings=[];
+ const benchInfo=buildBenchPlan(roster,innings,fieldCount,batteries,season);
+ const lineups=[],warnings=[],names=roster.map(p=>p.name);
+ const infPositions=POSITIONS.filter(p=>!OF.includes(p));
+ const openInf=infPositions.filter(p=>p!=="P"&&p!=="C");
+ const openOF=OF.slice();
+
+ // Build the immutable skeleton: P/C locks + bench.
+ const skeleton=Array.from({length:innings},(_,inn)=>({
+  P:batteries[inn][0],C:batteries[inn][1],bench:new Set(benchInfo.plan[inn]||[])
+ }));
+
+ // Count each player's total field innings and locked INF innings.
+ const fieldInnings={},lockedInf={};
+ names.forEach(n=>{fieldInnings[n]=0;lockedInf[n]=0});
  for(let inn=0;inn<innings;inn++){
-  const P=batteries[inn][0],C=batteries[inn][1],assigned={P,C},used=new Set([P,C]),benchNames=benchInfo.plan[inn]||[];
-  const bench=roster.filter(p=>benchNames.includes(p.name));bench.forEach(p=>used.add(p.name));
-  for(const [pos,n] of [["P",P],["C",C]]){stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;stats[n].inf++;stats[n].lastPos=pos}
-  for(const pos of POSITIONS.slice(2)){
-   let cand=roster.filter(p=>!used.has(p.name)&&!(pos==="1B"&&p.no1b));if(!cand.length)cand=roster.filter(p=>!used.has(p.name));
-   cand.sort((a,b)=>{
-    const A=stats[a.name],B=stats[b.name],SA=season[a.name],SB=season[b.name],isOF=OF.includes(pos);
-    const totalInfA=(SA.inf||0)+A.inf,totalOutA=(SA.out||0)+A.out,totalInfB=(SB.inf||0)+B.inf,totalOutB=(SB.out||0)+B.out;
-    const seasonNeedA=isOF?totalOutA-totalInfA:totalInfA-totalOutA,seasonNeedB=isOF?totalOutB-totalInfB:totalInfB-totalOutB;
-    const gameNeedA=isOF?A.out-A.inf:A.inf-A.out,gameNeedB=isOF?B.out-B.inf:B.inf-B.out;
-    const repeatA=A.lastPos===pos?1:0,repeatB=B.lastPos===pos?1:0,gamePosA=A.positions[pos]||0,gamePosB=B.positions[pos]||0;
-    const seasonPosA=SA.positions?.[pos]||0,seasonPosB=SB.positions?.[pos]||0;
-    return seasonNeedA-seasonNeedB||gameNeedA-gameNeedB||repeatA-repeatB||gamePosA-gamePosB||seasonPosA-seasonPosB||Math.random()-.5;
-   });
-   if(cand[0]){assigned[pos]=cand[0].name;used.add(cand[0].name)}
-  }
-  Object.entries(assigned).forEach(([pos,n])=>{if(pos!=="P"&&pos!=="C"){stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;if(OF.includes(pos))stats[n].out++;else stats[n].inf++;stats[n].lastPos=pos}});
-  bench.forEach(p=>{stats[p.name].bench++;stats[p.name].lastPos="BENCH"});
-  lineups.push({assigned,bench:bench.map(p=>p.name),POSITIONS});
+  names.forEach(n=>{if(!skeleton[inn].bench.has(n))fieldInnings[n]++});
+  lockedInf[skeleton[inn].P]++;lockedInf[skeleton[inn].C]++;
  }
- roster.filter(p=>p.no1b).forEach(p=>{if(lineups.some(l=>l.assigned["1B"]===p.name))warnings.push(`${p.name} was marked No 1B but had to be used there because no eligible player was available.`)});
+
+ // Whole-game INF targets. Start from the exact mathematical share, then
+ // distribute unavoidable extras by season need while respecting P/C locks.
+ const totalInfSlots=infPositions.length*innings;
+ const targetInf={};
+ const base=Math.floor(totalInfSlots/names.length),extra=totalInfSlots%names.length;
+ names.forEach(n=>targetInf[n]=Math.min(fieldInnings[n],Math.max(lockedInf[n],base)));
+
+ let assignedTarget=Object.values(targetInf).reduce((a,b)=>a+b,0);
+ const targetOrder=[...names].sort((a,b)=>{
+  const A=season[a]||emptyStat(),B=season[b]||emptyStat();
+  const balA=(A.inf||0)-(A.out||0),balB=(B.inf||0)-(B.out||0);
+  return balA-balB||(A.inf||0)-(B.inf||0)||a.localeCompare(b);
+ });
+ while(assignedTarget<totalInfSlots){
+  let moved=false;
+  for(const n of targetOrder){
+   if(targetInf[n]<fieldInnings[n]){targetInf[n]++;assignedTarget++;moved=true;if(assignedTarget===totalInfSlots)break}
+  }
+  if(!moved)break;
+ }
+ // If locks forced us above the normal base, remove excess elsewhere.
+ while(assignedTarget>totalInfSlots){
+  const reducible=[...names].filter(n=>targetInf[n]>lockedInf[n]).sort((a,b)=>{
+   const A=season[a]||emptyStat(),B=season[b]||emptyStat();
+   const balA=(A.inf||0)-(A.out||0),balB=(B.inf||0)-(B.out||0);
+   return balB-balA||targetInf[b]-targetInf[a]||a.localeCompare(b);
+  });
+  if(!reducible.length)break;
+  targetInf[reducible[0]]--;assignedTarget--;
+ }
+
+ // Plan WHO is INF/OF in every inning before choosing exact positions.
+ // P/C are already INF. The solver searches all combinations for the remaining INF slots.
+ const remainingInf=Object.fromEntries(names.map(n=>[n,targetInf[n]-lockedInf[n]]));
+ const infGroups=Array.from({length:innings},(_,inn)=>{
+  const locked=new Set([skeleton[inn].P,skeleton[inn].C]);
+  const eligible=names.filter(n=>!locked.has(n)&&!skeleton[inn].bench.has(n));
+  const k=openInf.length;
+  function combos(arr,k,start=0,pick=[],out=[]){
+   if(pick.length===k){out.push([...pick]);return out}
+   for(let i=start;i<=arr.length-(k-pick.length);i++){pick.push(arr[i]);combos(arr,k,i+1,pick,out);pick.pop()}
+   return out;
+  }
+  return combos(eligible,k);
+ });
+ const infPlan=Array.from({length:innings},()=>[]);
+ const inningOrder=[...Array(innings).keys()].sort((a,b)=>infGroups[a].length-infGroups[b].length);
+
+ function solveInf(depth){
+  if(depth===inningOrder.length)return Object.values(remainingInf).every(v=>v===0);
+  const inn=inningOrder[depth];
+  const valid=infGroups[inn].filter(g=>g.every(n=>remainingInf[n]>0));
+  valid.sort((A,B)=>{
+   const needA=A.reduce((s,n)=>s+remainingInf[n],0),needB=B.reduce((s,n)=>s+remainingInf[n],0);
+   const seasonA=A.reduce((s,n)=>s+((season[n]?.inf||0)-(season[n]?.out||0)),0);
+   const seasonB=B.reduce((s,n)=>s+((season[n]?.inf||0)-(season[n]?.out||0)),0);
+   return needB-needA||seasonA-seasonB||A.join("|").localeCompare(B.join("|"));
+  });
+  for(const g of valid){
+   infPlan[inn]=g;g.forEach(n=>remainingInf[n]--);
+   if(solveInf(depth+1))return true;
+   g.forEach(n=>remainingInf[n]++);infPlan[inn]=[];
+  }
+  return false;
+ }
+ const exactInf=solveInf(0);
+
+ // Very defensive fallback: if exact targets cannot be satisfied because of locks/bench,
+ // allocate by greatest remaining need while still preserving the planned bench.
+ if(!exactInf){
+  warnings.push("Pitcher/catcher locks or bench constraints prevent the ideal whole-game INF/OF split. FairFielding used the closest available balance.");
+  names.forEach(n=>remainingInf[n]=Math.max(0,targetInf[n]-lockedInf[n]));
+  for(let inn=0;inn<innings;inn++){
+   const locked=new Set([skeleton[inn].P,skeleton[inn].C]);
+   const eligible=names.filter(n=>!locked.has(n)&&!skeleton[inn].bench.has(n));
+   eligible.sort((a,b)=>remainingInf[b]-remainingInf[a]||
+    (((season[a]?.inf||0)-(season[a]?.out||0))-((season[b]?.inf||0)-(season[b]?.out||0)))||
+    a.localeCompare(b));
+   infPlan[inn]=eligible.slice(0,openInf.length);
+   infPlan[inn].forEach(n=>remainingInf[n]=Math.max(0,remainingInf[n]-1));
+  }
+ }
+
+ // Now assign exact positions INSIDE the already-balanced INF/OF groups.
+ for(let inn=0;inn<innings;inn++){
+  const P=skeleton[inn].P,C=skeleton[inn].C,assigned={P,C};
+  const bench=[...skeleton[inn].bench];
+  const infNames=new Set(infPlan[inn]);
+  const available=names.filter(n=>n!==P&&n!==C&&!skeleton[inn].bench.has(n));
+  const ofNames=available.filter(n=>!infNames.has(n));
+
+  for(const [pos,n] of [["P",P],["C",C]]){
+   stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;stats[n].inf++;stats[n].lastPos=pos;
+  }
+
+  const used=new Set([P,C]);
+  function assignPool(posList,pool){
+   for(const pos of posList){
+    let cand=pool.filter(n=>!used.has(n)&&!(pos==="1B"&&roster.find(p=>p.name===n)?.no1b));
+    if(!cand.length)cand=pool.filter(n=>!used.has(n));
+    cand.sort((a,b)=>{
+     const A=stats[a],B=stats[b],SA=season[a]||emptyStat(),SB=season[b]||emptyStat();
+     const repeatA=A.lastPos===pos?1:0,repeatB=B.lastPos===pos?1:0;
+     const gamePosA=A.positions[pos]||0,gamePosB=B.positions[pos]||0;
+     const seasonPosA=SA.positions?.[pos]||0,seasonPosB=SB.positions?.[pos]||0;
+     return repeatA-repeatB||gamePosA-gamePosB||seasonPosA-seasonPosB||a.localeCompare(b);
+    });
+    if(cand[0]){
+     const n=cand[0];assigned[pos]=n;used.add(n);
+     stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;
+     if(OF.includes(pos))stats[n].out++;else stats[n].inf++;
+     stats[n].lastPos=pos;
+    }
+   }
+  }
+  assignPool(openInf,[...infNames]);
+  assignPool(openOF,ofNames);
+
+  bench.forEach(n=>{stats[n].bench++;stats[n].lastPos="BENCH"});
+  lineups.push({assigned,bench,POSITIONS});
+ }
+
+ roster.filter(p=>p.no1b).forEach(p=>{
+  if(lineups.some(l=>l.assigned["1B"]===p.name))warnings.push(`${p.name} was marked No 1B but had to be used there because no eligible player was available.`);
+ });
  if(!benchInfo.exact)warnings.push("Locked pitcher/catcher assignments prevent a perfectly even bench rotation.");
+
  currentGame={team:document.getElementById("teamName").value||"Team",fieldCount,stats:JSON.parse(JSON.stringify(stats)),lineups:JSON.parse(JSON.stringify(lineups)),saved:false};
  renderResults(lineups,stats,warnings,fieldCount);
 }
