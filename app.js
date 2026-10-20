@@ -464,8 +464,8 @@ document.getElementById("gdNext").onclick=()=>changeInning(1);
 document.getElementById("gameTools").onclick=()=>showSheet("Game Tools","Completed innings stay locked. Use Change for substitutions or to mark a player unavailable.");
 document.getElementById("battingTab").onclick=()=>showSheet("Batting","Batting order is next. v0.8 focuses on making the live fielding workflow dependable first.");
 document.getElementById("gdSheetClose").onclick=closeSheet;
-document.getElementById("gdChange").onclick=openChangeMenu;
-document.getElementById("gdComplete").onclick=completeCurrentInning;
+const gdChangeBtn=document.getElementById("gdChange");if(gdChangeBtn)gdChangeBtn.onclick=openChangeMenu;
+const gdCompleteBtn=document.getElementById("gdComplete");if(gdCompleteBtn)gdCompleteBtn.onclick=completeCurrentInning;
 document.getElementById("gdSheet").onclick=e=>{if(e.target.id==="gdSheet")e.currentTarget.classList.add("hidden")};
 
 resetDemo();

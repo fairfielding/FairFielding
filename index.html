@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="FairFielding" />
   <title>FairFielding</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=081" />
+  <link rel="stylesheet" href="style.css?v=082" />
 </head>
 <body>
 <div id="builderView">
@@ -68,7 +68,7 @@
 </section>
 </main>
 
-<footer>FairFielding v0.8.1 • Live Game Day</footer>
+<footer>FairFielding v0.8.2 • Live Game Day</footer>
 </div>
 
 <section id="gameDayView" class="game-day hidden" aria-label="Game Day">
@@ -112,6 +112,11 @@
 
     
 
+    <div class="gd-live-actions">
+      <button class="gd-change" id="gdChange">CHANGE</button>
+      <button class="gd-complete" id="gdComplete">✓ COMPLETE INNING</button>
+    </div>
+
     <div class="gd-bottom-nav">
       <button class="active"><span>⬟</span>FIELD</button>
       <button id="battingTab"><span>☷</span>BATTING</button>
@@ -129,6 +134,6 @@
   </div>
 </section>
 
-<script src="app.js?v=081"></script>
+<script src="app.js?v=082"></script>
 </body>
 </html>

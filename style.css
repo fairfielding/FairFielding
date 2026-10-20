@@ -85,7 +85,7 @@ body{background:linear-gradient(180deg,#eef3f9 0%,#f7f9fc 42%,#eef3f9 100%)}head
 .gd-stadium-glow.left{left:-70px}.gd-stadium-glow.right{right:-70px}
 .gd-field{
  width:100%;aspect-ratio:900/1040;border-radius:0;border:0;
- background:url("field-stadium.svg?v=081") center/cover no-repeat;
+ background:url("field-stadium.svg?v=082") center/cover no-repeat;
  box-shadow:none;overflow:hidden
 }
 .field-grass-ring,.field-foul,.field-dirt,.field-infield-grass,.field-base,.field-mound{display:none}
