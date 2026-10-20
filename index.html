@@ -68,7 +68,7 @@
 </section>
 </main>
 
-<footer>FairFielding v0.7.3 • Premium Game Day</footer>
+<footer>FairFielding v0.7.4 • Stadium Game Day</footer>
 </div>
 
 <section id="gameDayView" class="game-day hidden" aria-label="Game Day">
@@ -82,43 +82,39 @@
       <button class="gd-menu" id="gameTools" aria-label="Game tools">•••</button>
     </div>
 
-    <div class="gd-game-head">
-      <div>
+    <div class="gd-scoreboard">
+      <div class="gd-team-block">
         <div class="gd-team" id="gdTeam">Comets</div>
-        <div class="gd-sub" id="gdFormat">10 Player • Inning 1 of 6</div>
+        <div class="gd-team-stripe"></div>
+        <div class="gd-sub" id="gdFormat">10 Players • 6 Innings</div>
       </div>
-      <div class="gd-inning-badge"><small>INNING</small><strong id="gdInningBig">1</strong></div>
+      <div class="gd-inning-control">
+        <button id="gdPrev" aria-label="Previous inning">‹</button>
+        <div><small>INNING</small><strong id="gdInningBig">1</strong><em id="gdInningOf">OF 6</em></div>
+        <button id="gdNext" aria-label="Next inning">›</button>
+      </div>
     </div>
 
     <div class="gd-innings" id="gdInnings"></div>
 
     <div class="gd-field-wrap" id="gdSwipeArea">
+      <div class="gd-stadium-glow left"></div>
+      <div class="gd-stadium-glow right"></div>
       <div class="gd-field" id="gdField">
-        <div class="field-grass-ring ring-1"></div>
-        <div class="field-grass-ring ring-2"></div>
-        <div class="field-foul left"></div>
-        <div class="field-foul right"></div>
-        <div class="field-dirt"></div>
-        <div class="field-infield-grass"></div>
-        <div class="field-base home"></div>
-        <div class="field-base first"></div>
-        <div class="field-base second"></div>
-        <div class="field-base third"></div>
-        <div class="field-mound"></div>
         <div id="gdPlayers"></div>
       </div>
     </div>
 
     <div class="gd-bench-card">
-      <div class="gd-bench-title"><span><i class="dugout-dot"></i>DUGOUT</span><small id="gdBenchCount"></small></div>
+      <div class="gd-bench-title"><span><b class="dugout-icon">♟♟</b> DUGOUT</span><small id="gdBenchCount"></small></div>
       <div class="gd-bench" id="gdBench"></div>
     </div>
 
     
 
     <div class="gd-bottom-nav">
-      <button class="active"><span class="nav-icon field-icon">◆</span>FIELD</button>
-      <button id="battingTab"><span class="nav-icon batting-icon">☷</span>BATTING</button>
+      <button class="active"><span>⬟</span>FIELD</button>
+      <button id="battingTab"><span>☷</span>BATTING</button>
     </div>
   </div>
 

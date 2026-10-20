@@ -19,215 +19,118 @@ body{background:linear-gradient(180deg,#eef3f9 0%,#f7f9fc 42%,#eef3f9 100%)}head
   color:#526786
 }
 
-/* v0.7.3 Premium Game Day visual overhaul */
-.game-day{
-  background:#050d1a;
-  color:#fff;
-}
+/* v0.7.4 — Stadium Game Day */
+.game-day{background:#020b17}
 .gd-shell{
-  width:min(100%,560px);
-  background:#edf2f7;
-  box-shadow:0 0 70px rgba(0,0,0,.42);
+ width:min(100%,560px);background:#061426;color:#fff;
+ box-shadow:0 0 90px rgba(0,0,0,.55)
 }
 .gd-topbar{
-  height:58px;
-  grid-template-columns:44px 1fr 44px;
-  padding:0 14px;
-  background:linear-gradient(135deg,#06172f,#0a2d60 72%,#104580);
-  border-bottom:1px solid rgba(255,255,255,.08);
+ height:58px;background:linear-gradient(135deg,#031329,#082e5b);
+ border-bottom:1px solid rgba(91,170,255,.22)
 }
 .gd-back,.gd-menu{
-  width:38px;height:38px;border-radius:13px;
-  background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+ background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.035));
+ border:1px solid rgba(139,194,255,.16);box-shadow:inset 0 1px rgba(255,255,255,.07)
 }
-.gd-brand strong{font-size:.82rem;letter-spacing:.12em}
-.gd-brand small{font-size:.49rem;letter-spacing:.18em;color:#8db8f2}
-.gd-ball{width:27px;height:27px;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-
-.gd-game-head{
-  padding:17px 20px 14px;
-  background:
-    radial-gradient(circle at 90% 0,rgba(71,139,226,.24),transparent 32%),
-    linear-gradient(135deg,#071d3d,#0d3972 68%,#10509a);
-  border-bottom:1px solid rgba(255,255,255,.08);
+.gd-brand strong{letter-spacing:.13em;font-size:.82rem}
+.gd-brand small{letter-spacing:.19em;font-size:.48rem;color:#87b9f5}
+.gd-scoreboard{
+ display:grid;grid-template-columns:1fr 146px;gap:12px;align-items:center;
+ padding:14px 15px;
+ background:
+ radial-gradient(circle at 0 50%,rgba(26,111,203,.18),transparent 42%),
+ linear-gradient(135deg,#04172e,#08264a 70%,#0b315e);
+ border-bottom:1px solid rgba(92,169,255,.18)
 }
+.gd-team-block{min-width:0}
 .gd-team{
-  font-size:1.52rem;
-  letter-spacing:-.035em;
-  font-weight:950;
+ font-size:1.75rem;text-transform:uppercase;letter-spacing:-.045em;
+ font-weight:950;font-style:italic;text-shadow:0 3px 12px rgba(0,0,0,.35)
 }
-.gd-sub{font-size:.72rem;color:#b9cce5;margin-top:4px;font-weight:650}
-.gd-inning-badge{
-  padding:7px 11px;
-  border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.07);
-  backdrop-filter:blur(8px);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+.gd-team-stripe{
+ width:135px;height:5px;margin:5px 0 7px;border-radius:5px;
+ background:linear-gradient(90deg,#e33138 0 35%,#fff 35% 48%,#2b76c8 48% 100%);
+ transform:skewX(-20deg)
 }
-.gd-inning-badge strong{font-size:1.28rem}
-.gd-inning-badge small{font-size:.49rem;letter-spacing:.16em}
-
+.gd-sub{font-size:.59rem;letter-spacing:.12em;color:#afc6df;font-weight:800}
+.gd-inning-control{
+ height:80px;display:grid;grid-template-columns:34px 1fr 34px;
+ border:1px solid rgba(125,185,244,.2);border-radius:15px;overflow:hidden;
+ background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025));
+ box-shadow:inset 0 1px rgba(255,255,255,.06),0 7px 20px rgba(0,0,0,.15)
+}
+.gd-inning-control button{border:0;background:rgba(255,255,255,.025);color:#dcecff;font-size:30px}
+.gd-inning-control div{display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:1px solid rgba(255,255,255,.08);border-right:1px solid rgba(255,255,255,.08)}
+.gd-inning-control small{color:#9cb9da;font-size:.49rem;letter-spacing:.17em}
+.gd-inning-control strong{font-size:1.55rem;line-height:1.05}
+.gd-inning-control em{font-style:normal;color:#9cb9da;font-size:.52rem;font-weight:900;letter-spacing:.12em;margin-top:2px}
+.gd-inning-badge{display:none}
 .gd-innings{
-  gap:5px;
-  padding:9px 12px 10px;
-  background:#fff;
-  border-bottom:1px solid #dde5ee;
-  box-shadow:0 4px 12px rgba(20,45,76,.05);
+ background:#06172b;padding:9px 12px;gap:7px;border-bottom:1px solid rgba(95,161,222,.18)
 }
 .gd-innings button{
-  min-width:40px;
-  padding:8px 5px;
-  border-radius:9px;
-  border:0;
-  background:#f0f4f8;
-  color:#7a8798;
-  font-size:.75rem;
-  box-shadow:inset 0 0 0 1px #e0e7ef;
+ border:1px solid rgba(125,176,225,.2);background:#0a2039;color:#9cb1c8;
+ border-radius:10px;box-shadow:inset 0 1px rgba(255,255,255,.03)
 }
 .gd-innings button.active{
-  background:linear-gradient(145deg,#0c3977,#1558a8);
-  box-shadow:0 5px 12px rgba(14,62,127,.25),inset 0 1px 0 rgba(255,255,255,.15);
+ background:linear-gradient(145deg,#008cf0,#0758c9);color:#fff;border-color:#38a9ff;
+ box-shadow:0 0 18px rgba(0,139,240,.35),inset 0 1px rgba(255,255,255,.25)
 }
-
-.gd-field-wrap{padding:12px 12px 7px;background:#edf2f7}
+.gd-field-wrap{
+ position:relative;padding:0;background:#04101e;overflow:hidden;
+ border-top:1px solid rgba(255,255,255,.04)
+}
+.gd-stadium-glow{position:absolute;top:-20px;width:140px;height:170px;background:radial-gradient(circle,#fff 0,#b9e4ff 7%,rgba(87,170,255,.25) 25%,transparent 70%);z-index:3;pointer-events:none}
+.gd-stadium-glow.left{left:-70px}.gd-stadium-glow.right{right:-70px}
 .gd-field{
-  aspect-ratio:1/1.08;
-  border-radius:22px;
-  border:1px solid rgba(6,32,22,.18);
-  background:
-    radial-gradient(ellipse at 50% 67%,rgba(255,255,255,.045) 0 2%,transparent 2.4%),
-    repeating-radial-gradient(ellipse at 50% 58%,#397e3d 0 11%,#438a44 11% 20%,#397e3d 20% 29%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.08),
-    inset 0 -25px 55px rgba(0,31,18,.16),
-    0 10px 24px rgba(24,52,77,.15);
+ width:100%;aspect-ratio:900/1040;border-radius:0;border:0;
+ background:url("field-stadium.svg") center/cover no-repeat;
+ box-shadow:none;overflow:hidden
 }
-.gd-field:before{
-  content:"";
-  position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 24%,rgba(0,0,0,.035));
-  pointer-events:none;z-index:2;
+.field-grass-ring,.field-foul,.field-dirt,.field-infield-grass,.field-base,.field-mound{display:none}
+.gd-player{min-width:74px;max-width:108px;z-index:12}
+.gd-pos{
+ display:block;width:max-content;margin:0 auto -2px;padding:3px 8px;
+ border-radius:12px 12px 4px 4px;
+ background:linear-gradient(180deg,#0a5da8,#073b75);color:#fff;
+ border:1px solid #38a9ff;font-size:.54rem;letter-spacing:.08em;
+ box-shadow:0 2px 8px rgba(0,0,0,.32)
 }
-.field-dirt{
-  top:65%;width:43%;
-  background:linear-gradient(145deg,#bd824b,#d09a63);
-  box-shadow:inset 0 0 14px rgba(87,49,19,.16),0 0 0 1px rgba(113,69,32,.12);
-}
-.field-infield-grass{top:65%;width:29%;background:#438846}
-.field-foul{height:79%;background:rgba(255,255,255,.84);box-shadow:0 0 1px rgba(255,255,255,.4)}
-.field-base{width:11px;height:11px;border-radius:1px;box-shadow:0 2px 4px rgba(0,0,0,.25)}
-.field-mound{width:20px;height:12px;background:#c88e56;box-shadow:inset 0 1px 2px rgba(255,255,255,.25)}
-
-.gd-player{
-  min-width:0;
-  max-width:118px;
-  z-index:12;
-}
-.gd-pos{display:none}
 .gd-name{
-  min-width:76px;
-  max-width:118px;
-  display:flex;
-  align-items:center;
-  gap:5px;
-  padding:4px 7px 4px 4px;
-  border-radius:12px;
-  background:rgba(255,255,255,.96);
-  border:1px solid rgba(10,45,79,.16);
-  box-shadow:0 5px 12px rgba(0,22,17,.22),inset 0 1px 0 #fff;
-  text-align:left;
-}
-.gd-avatar{
-  flex:0 0 25px;
-  width:25px;height:25px;
-  display:grid;place-items:center;
-  border-radius:9px;
-  background:linear-gradient(145deg,#0a3269,#14569f);
-  color:#fff;
-  font-size:.51rem;
-  font-weight:950;
-  letter-spacing:.02em;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
-}
-.gd-player-text{
-  min-width:0;
-  display:flex;
-  flex-direction:column;
-  line-height:1.05;
-}
-.gd-player-text b{
-  max-width:76px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-  font-size:.64rem;
-  color:#102845;
-  letter-spacing:-.01em;
-}
-.gd-player-text small{
-  margin-top:3px;
-  color:#71839a;
-  font-size:.47rem;
-  font-weight:950;
-  letter-spacing:.12em;
+ display:block;min-width:76px;max-width:108px;padding:6px 9px;
+ border-radius:9px;background:linear-gradient(180deg,#061a31,#031224);
+ color:#fff;border:1px solid #d8a441;font-size:.69rem;font-weight:950;
+ box-shadow:0 5px 12px rgba(0,0,0,.4),inset 0 1px rgba(255,255,255,.06);
+ text-shadow:0 1px 2px #000
 }
 .gd-player.battery .gd-name{
-  background:#f5f9ff;
-  border-color:#8fb6e5;
-  box-shadow:0 5px 13px rgba(0,28,72,.22),inset 0 1px 0 #fff;
+ background:linear-gradient(180deg,#092b52,#04172d);color:#fff;
+ border-color:#54b7ff;box-shadow:0 0 0 1px rgba(84,183,255,.2),0 5px 14px rgba(0,0,0,.42)
 }
-.gd-player.battery .gd-avatar{
-  background:linear-gradient(145deg,#082b5d,#0d438b);
-}
-
 .gd-bench-card{
-  margin:2px 12px 10px;
-  padding:9px 11px 10px;
-  border-radius:13px;
-  border:1px solid #dce4ec;
-  box-shadow:0 5px 14px rgba(20,48,87,.06);
+ margin:0;background:
+ linear-gradient(rgba(2,14,27,.86),rgba(2,14,27,.92)),
+ repeating-linear-gradient(90deg,transparent 0 18px,rgba(255,255,255,.05) 18px 20px);
+ color:#fff;border:1px solid #15558b;border-left:0;border-right:0;border-radius:0;
+ padding:12px 16px 14px;box-shadow:inset 0 8px 25px rgba(0,0,0,.3)
 }
-.gd-bench-title{margin-bottom:6px}
-.gd-bench-title span{
-  display:flex;align-items:center;gap:6px;
-  font-size:.59rem;letter-spacing:.13em;color:#65758a;
-}
-.dugout-dot{width:6px;height:6px;border-radius:50%;background:#174f96;display:inline-block}
-.gd-bench-title small{font-size:.56rem;letter-spacing:.08em}
-.gd-bench{gap:6px}
+.gd-bench-title span{color:#fff;font-size:.68rem;letter-spacing:.14em}
+.gd-bench-title small{color:#91abc7}
+.dugout-icon{color:#e4b04d;font-size:.8rem;letter-spacing:-.15em;margin-right:6px}
 .gd-bench span{
-  padding:5px 8px;
-  border-radius:8px;
-  background:#f2f5f8;
-  font-size:.68rem;
+ background:linear-gradient(180deg,#0b2948,#06192e);border:1px solid #2c6596;
+ color:#fff;padding:7px 12px;border-radius:9px;box-shadow:inset 0 1px rgba(255,255,255,.05)
 }
-
+.gd-swipe-hint{display:none}
 .gd-bottom-nav{
-  height:calc(60px + env(safe-area-inset-bottom));
-  background:rgba(255,255,255,.97);
-  border-top:1px solid #d9e2ec;
-  box-shadow:0 -5px 18px rgba(17,42,70,.07);
+ background:#031326;border-top:1px solid #13548b;box-shadow:0 -8px 24px rgba(0,0,0,.25)
 }
-.gd-bottom-nav button{
-  position:relative;
-  gap:2px;
-  font-size:.57rem;
-  letter-spacing:.12em;
-}
-.gd-bottom-nav button.active:before{
-  content:"";
-  position:absolute;top:0;
-  width:46px;height:3px;border-radius:0 0 4px 4px;
-  background:#1555a2;
-}
-.nav-icon{font-size:1rem!important;line-height:1}
-.gd-bottom-nav button.active .nav-icon{transform:translateY(-1px)}
-
+.gd-bottom-nav button{background:transparent;color:#6f8cab}
+.gd-bottom-nav button.active{color:#fff}
+.gd-bottom-nav button.active:before{content:"";position:absolute;top:0;width:58px;height:3px;background:#00a4ff;border-radius:0 0 4px 4px;box-shadow:0 0 10px #008ee8}
+.gd-bottom-nav button span{color:inherit}
 @media(max-width:390px){
-  .gd-field{aspect-ratio:1/1.1}
-  .gd-name{min-width:70px;padding-right:5px}
-  .gd-avatar{width:23px;height:23px;flex-basis:23px}
-  .gd-player-text b{font-size:.6rem;max-width:67px}
+ .gd-scoreboard{grid-template-columns:1fr 136px;padding-left:13px;padding-right:13px}
+ .gd-team{font-size:1.55rem}.gd-player{transform:translate(-50%,-50%) scale(.93)}
 }

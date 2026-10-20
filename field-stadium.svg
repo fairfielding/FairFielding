@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1040">
+<defs>
+ <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#031020"/><stop offset=".55" stop-color="#0a2741"/><stop offset="1" stop-color="#173c42"/></linearGradient>
+ <radialGradient id="light"><stop stop-color="#fff" stop-opacity=".95"/><stop offset=".18" stop-color="#dff2ff" stop-opacity=".65"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="dirt" x2="0" y2="1"><stop stop-color="#d9a064"/><stop offset="1" stop-color="#a96535"/></linearGradient>
+ <pattern id="grass" width="120" height="120" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+   <rect width="60" height="120" fill="#267537"/><rect x="60" width="60" height="120" fill="#318440"/>
+ </pattern>
+ <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity=".28"/></filter>
+</defs>
+<rect width="900" height="1040" fill="url(#sky)"/>
+<!-- stadium trees -->
+<path d="M0 210 Q80 145 145 205 Q220 125 300 202 Q370 140 450 205 Q540 120 620 205 Q720 130 790 205 Q850 150 900 210 V300 H0Z" fill="#071d20"/>
+<!-- light glows -->
+<circle cx="35" cy="165" r="145" fill="url(#light)"/><circle cx="865" cy="165" r="145" fill="url(#light)"/>
+<!-- fence/warning track -->
+<path d="M20 320 Q450 135 880 320 L850 382 Q450 220 50 382Z" fill="#4e2e21"/>
+<path d="M22 307 Q450 122 878 307 L872 338 Q450 165 28 338Z" fill="#082c3a" stroke="#e2b63f" stroke-width="7"/>
+<g opacity=".45" stroke="#5f8190" stroke-width="2">
+ <path d="M80 285v55M160 250v65M250 215v70M350 185v78M450 174v82M550 185v78M650 215v70M740 250v65M820 285v55"/>
+</g>
+<!-- grass -->
+<path d="M35 345 Q450 170 865 345 L900 1040 H0Z" fill="url(#grass)"/>
+<!-- mowing arcs -->
+<path d="M75 490 Q450 305 825 490" fill="none" stroke="#6baa61" stroke-opacity=".17" stroke-width="70"/>
+<path d="M120 650 Q450 470 780 650" fill="none" stroke="#174f2b" stroke-opacity=".14" stroke-width="62"/>
+<!-- infield dirt skin -->
+<path d="M450 525 L710 755 L450 1000 L190 755 Z" fill="url(#dirt)" stroke="#945b31" stroke-width="3"/>
+<!-- infield grass -->
+<path d="M450 585 L645 755 L450 932 L255 755 Z" fill="#2b7c39"/>
+<!-- base paths -->
+<path d="M450 965 L675 755 L450 555 L225 755 Z" fill="none" stroke="#e7b77e" stroke-width="20" opacity=".9"/>
+<!-- foul lines -->
+<path d="M450 1010 L25 390M450 1010 L875 390" stroke="white" stroke-width="5" opacity=".9"/>
+<!-- batter circle -->
+<circle cx="450" cy="972" r="69" fill="#bd7b46" stroke="#e9c18c" stroke-width="5"/>
+<!-- mound -->
+<ellipse cx="450" cy="765" rx="52" ry="38" fill="#c6874e" stroke="#a96c3c" stroke-width="3"/>
+<rect x="435" y="758" width="30" height="7" rx="2" fill="#eee"/>
+<!-- bases -->
+<g fill="#fff" stroke="#d9d9d9" stroke-width="2" filter="url(#shadow)">
+ <rect x="660" y="744" width="20" height="20" transform="rotate(45 670 754)"/>
+ <rect x="440" y="545" width="20" height="20" transform="rotate(45 450 555)"/>
+ <rect x="220" y="744" width="20" height="20" transform="rotate(45 230 754)"/>
+ <path d="M450 985 l16 12 -6 18 h-20 l-6-18z"/>
+</g>
+<!-- subtle vignette -->
+<rect width="900" height="1040" fill="none" stroke="#00110b" stroke-opacity=".35" stroke-width="40"/>
+</svg>

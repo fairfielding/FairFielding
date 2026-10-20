@@ -302,9 +302,9 @@ function resetSeasonHistory(){
 
 /* Game Day */
 const FIELD_COORDS={
- "P":[50,68],"C":[50,88],"1B":[70,66],"2B":[61,53],"3B":[30,66],"SS":[39,53],
- "LF":[20,30],"CF":[50,20],"RF":[80,30],
- "LC":[38,22],"RC":[62,22]
+ "P":[50,68],"C":[50,88],"1B":[75,68],"2B":[63,56],"3B":[25,68],"SS":[37,56],
+ "LF":[16,35],"CF":[50,23],"RF":[84,35],
+ "LC":[36,27],"RC":[64,27]
 };
 function openGameDay(){
  if(!currentGame||!currentGame.lineups?.length){alert("Generate a lineup first.");return}
@@ -322,7 +322,7 @@ function closeGameDay(){
 function renderGameDay(){
  const lineups=currentGame.lineups, l=lineups[gameDayInning], fieldCount=currentGame.fieldCount||l.POSITIONS.length;
  document.getElementById("gdTeam").textContent=currentGame.team;
- document.getElementById("gdFormat").textContent=`${fieldCount} Player • Inning ${gameDayInning+1} of ${lineups.length}`;
+ document.getElementById("gdFormat").textContent=`${fieldCount} PLAYERS  •  ${lineups.length} INNINGS`;document.getElementById("gdInningOf").textContent=`OF ${lineups.length}`;
  document.getElementById("gdInningBig").textContent=gameDayInning+1;
  const nav=document.getElementById("gdInnings");nav.innerHTML="";
  lineups.forEach((_,i)=>{const b=document.createElement("button");b.textContent=i+1;b.className=i===gameDayInning?"active":"";b.onclick=()=>{gameDayInning=i;renderGameDay()};nav.appendChild(b)});
@@ -331,8 +331,7 @@ function renderGameDay(){
   const name=l.assigned[pos];if(!name||!FIELD_COORDS[pos])return;
   const [x,y]=FIELD_COORDS[pos],d=document.createElement("div");d.className=`gd-player ${(pos==="P"||pos==="C")?"battery":""}`;
   d.style.left=x+"%";d.style.top=y+"%";
-  const initials=name.split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
-  d.innerHTML=`<span class="gd-name"><span class="gd-avatar">${esc(initials)}</span><span class="gd-player-text"><b>${esc(name)}</b><small>${pos}</small></span></span>`;
+  d.innerHTML=`<span class="gd-pos">${pos}</span><span class="gd-name">${esc(name)}</span>`;
   box.appendChild(d);
  });
  const bench=document.getElementById("gdBench"),names=l.bench||[];
@@ -354,6 +353,8 @@ document.getElementById("saveGame").onclick=saveCurrentGame;
 document.getElementById("resetHistory").onclick=resetSeasonHistory;
 document.getElementById("openGameDay").onclick=openGameDay;
 document.getElementById("closeGameDay").onclick=closeGameDay;
+document.getElementById("gdPrev").onclick=()=>changeInning(-1);
+document.getElementById("gdNext").onclick=()=>changeInning(1);
 document.getElementById("gameTools").onclick=()=>showSheet("Game Tools","This first Game Day build displays your generated rotation. Next we can add Complete Inning, substitutions, player locks, and rebalance-only-the-remaining-innings.");
 document.getElementById("battingTab").onclick=()=>showSheet("Batting","Batting-order tracking is the next Game Day feature. The fielding rotation remains unchanged.");
 document.getElementById("gdSheetClose").onclick=()=>document.getElementById("gdSheet").classList.add("hidden");
