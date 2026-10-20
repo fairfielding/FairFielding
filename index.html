@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="FairFielding" />
   <title>FairFielding</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css?v=075" />
+  <link rel="stylesheet" href="style.css?v=080" />
 </head>
 <body>
 <div id="builderView">
@@ -68,7 +68,7 @@
 </section>
 </main>
 
-<footer>FairFielding v0.7.5 • Stadium Game Day</footer>
+<footer>FairFielding v0.8.0 • Live Game Day</footer>
 </div>
 
 <section id="gameDayView" class="game-day hidden" aria-label="Game Day">
@@ -122,12 +122,13 @@
     <div class="gd-sheet-card">
       <div class="gd-sheet-handle"></div>
       <h3 id="gdSheetTitle">Game Tools</h3>
-      <p id="gdSheetText">Game Day v0.7 displays the generated rotation. Live changes and batting tracking are coming next.</p>
-      <button class="primary" id="gdSheetClose">Got it</button>
+      <p id="gdSheetText"></p>
+      <div id="gdSheetBody"></div>
+      <button class="secondary full" id="gdSheetClose">Close</button>
     </div>
   </div>
 </section>
 
-<script src="app.js?v=075"></script>
+<script src="app.js?v=080"></script>
 </body>
 </html>

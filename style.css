@@ -85,7 +85,7 @@ body{background:linear-gradient(180deg,#eef3f9 0%,#f7f9fc 42%,#eef3f9 100%)}head
 .gd-stadium-glow.left{left:-70px}.gd-stadium-glow.right{right:-70px}
 .gd-field{
  width:100%;aspect-ratio:900/1040;border-radius:0;border:0;
- background:url("field-stadium.svg?v=075") center/cover no-repeat;
+ background:url("field-stadium.svg?v=080") center/cover no-repeat;
  box-shadow:none;overflow:hidden
 }
 .field-grass-ring,.field-foul,.field-dirt,.field-infield-grass,.field-base,.field-mound{display:none}
@@ -201,3 +201,21 @@ body{background:linear-gradient(180deg,#eef3f9 0%,#f7f9fc 42%,#eef3f9 100%)}head
   .gd-inning-control{height:68px}
   .gd-player{transform:translate(-50%,-50%) scale(.90)}
 }
+
+/* v0.8 live Game Day controls */
+.gd-live-actions{display:grid;grid-template-columns:.8fr 1.6fr;gap:8px;padding:9px 12px;background:#041326;border-top:1px solid #164a77}
+.gd-live-actions button{min-height:44px;border-radius:10px;font-size:.67rem;font-weight:950;letter-spacing:.08em}
+.gd-change{background:#0a2947;color:#d9eaff;border:1px solid #2c6596}
+.gd-complete{background:linear-gradient(145deg,#087b4c,#0a9a5c);color:#fff;border:1px solid #25b879;box-shadow:0 5px 14px rgba(5,121,73,.22)}
+.gd-live-actions button:disabled{opacity:.45;box-shadow:none}
+.gd-innings button.completed{color:#8de2b2;border-color:#277b55;background:#092c28}
+.gd-innings button.completed.active{background:linear-gradient(145deg,#087b4c,#0a9a5c);color:#fff;border-color:#38d58b}
+.gd-player{border:0;background:transparent;padding:0;font:inherit;cursor:pointer}
+.gd-bench button{background:linear-gradient(180deg,#0b2948,#06192e);border:1px solid #24577f;color:#fff;padding:6px 11px;border-radius:9px;font-weight:800}
+.gd-sheet-card{max-height:72vh;overflow:auto}
+#gdSheetBody{margin-top:10px}
+.gd-choice-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gd-choice-list button,.gd-sheet-action{min-height:48px;border-radius:11px;border:1px solid #d7e2ee;background:#f4f7fb;color:#132a47;font-weight:850;padding:9px}
+.gd-choice-list button{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gd-choice-list small{color:#71839a;font-size:.64rem}
+.gd-sheet-action{width:100%;color:#9b2929;background:#fff1f1;border-color:#efcccc}
