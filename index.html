@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<div id="builderView">
 <header>
   <div>
     <div class="brand-row"><div class="ball-mark">⚾</div><div class="eyebrow">BASEBALL LINEUP BUILDER</div></div>
@@ -49,6 +50,8 @@
 <section class="card hidden" id="resultsCard">
   <div class="section-title"><div><small>LINEUP</small><h2 id="resultTitle">Defensive rotation</h2></div></div>
   <div id="warnings"></div>
+  <button class="primary game-day-launch" id="openGameDay">⚾ Open Game Day</button>
+  <p class="hint center game-day-hint">View the generated defense on the field and swipe through innings.</p>
   <div id="results"></div>
   <div id="summary"></div>
   <button class="primary save" id="saveGame">Save This Game</button>
@@ -65,7 +68,70 @@
 </section>
 </main>
 
-<footer>FairFielding v0.6.1 • Built for youth baseball coaches</footer>
+<footer>FairFielding v0.7.0 • Game Day</footer>
+</div>
+
+<section id="gameDayView" class="game-day hidden" aria-label="Game Day">
+  <div class="gd-shell">
+    <div class="gd-topbar">
+      <button class="gd-back" id="closeGameDay" aria-label="Back to lineup">‹</button>
+      <div class="gd-brand">
+        <span class="gd-ball">⚾</span>
+        <div><strong>FAIRFIELDING</strong><small>GAME DAY</small></div>
+      </div>
+      <button class="gd-menu" id="gameTools" aria-label="Game tools">•••</button>
+    </div>
+
+    <div class="gd-game-head">
+      <div>
+        <div class="gd-team" id="gdTeam">Comets</div>
+        <div class="gd-sub" id="gdFormat">10-player defense</div>
+      </div>
+      <div class="gd-inning-badge"><small>INNING</small><strong id="gdInningBig">1</strong></div>
+    </div>
+
+    <div class="gd-innings" id="gdInnings"></div>
+
+    <div class="gd-field-wrap" id="gdSwipeArea">
+      <div class="gd-field" id="gdField">
+        <div class="field-grass-ring ring-1"></div>
+        <div class="field-grass-ring ring-2"></div>
+        <div class="field-foul left"></div>
+        <div class="field-foul right"></div>
+        <div class="field-dirt"></div>
+        <div class="field-infield-grass"></div>
+        <div class="field-base home"></div>
+        <div class="field-base first"></div>
+        <div class="field-base second"></div>
+        <div class="field-base third"></div>
+        <div class="field-mound"></div>
+        <div id="gdPlayers"></div>
+      </div>
+    </div>
+
+    <div class="gd-bench-card">
+      <div class="gd-bench-title"><span>BENCH</span><small id="gdBenchCount"></small></div>
+      <div class="gd-bench" id="gdBench"></div>
+    </div>
+
+    <div class="gd-swipe-hint">‹ Swipe or tap an inning ›</div>
+
+    <div class="gd-bottom-nav">
+      <button class="active"><span>◇</span>FIELD</button>
+      <button id="battingTab"><span>☷</span>BATTING</button>
+    </div>
+  </div>
+
+  <div class="gd-sheet hidden" id="gdSheet">
+    <div class="gd-sheet-card">
+      <div class="gd-sheet-handle"></div>
+      <h3 id="gdSheetTitle">Game Tools</h3>
+      <p id="gdSheetText">Game Day v0.7 displays the generated rotation. Live changes and batting tracking are coming next.</p>
+      <button class="primary" id="gdSheetClose">Got it</button>
+    </div>
+  </div>
+</section>
+
 <script src="app.js"></script>
 </body>
 </html>
