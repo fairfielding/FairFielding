@@ -18,3 +18,216 @@ body{background:linear-gradient(180deg,#eef3f9 0%,#f7f9fc 42%,#eef3f9 100%)}head
   font-weight:800;
   color:#526786
 }
+
+/* v0.7.3 Premium Game Day visual overhaul */
+.game-day{
+  background:#050d1a;
+  color:#fff;
+}
+.gd-shell{
+  width:min(100%,560px);
+  background:#edf2f7;
+  box-shadow:0 0 70px rgba(0,0,0,.42);
+}
+.gd-topbar{
+  height:58px;
+  grid-template-columns:44px 1fr 44px;
+  padding:0 14px;
+  background:linear-gradient(135deg,#06172f,#0a2d60 72%,#104580);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.gd-back,.gd-menu{
+  width:38px;height:38px;border-radius:13px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+.gd-brand strong{font-size:.82rem;letter-spacing:.12em}
+.gd-brand small{font-size:.49rem;letter-spacing:.18em;color:#8db8f2}
+.gd-ball{width:27px;height:27px;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+
+.gd-game-head{
+  padding:17px 20px 14px;
+  background:
+    radial-gradient(circle at 90% 0,rgba(71,139,226,.24),transparent 32%),
+    linear-gradient(135deg,#071d3d,#0d3972 68%,#10509a);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.gd-team{
+  font-size:1.52rem;
+  letter-spacing:-.035em;
+  font-weight:950;
+}
+.gd-sub{font-size:.72rem;color:#b9cce5;margin-top:4px;font-weight:650}
+.gd-inning-badge{
+  padding:7px 11px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.07);
+  backdrop-filter:blur(8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+.gd-inning-badge strong{font-size:1.28rem}
+.gd-inning-badge small{font-size:.49rem;letter-spacing:.16em}
+
+.gd-innings{
+  gap:5px;
+  padding:9px 12px 10px;
+  background:#fff;
+  border-bottom:1px solid #dde5ee;
+  box-shadow:0 4px 12px rgba(20,45,76,.05);
+}
+.gd-innings button{
+  min-width:40px;
+  padding:8px 5px;
+  border-radius:9px;
+  border:0;
+  background:#f0f4f8;
+  color:#7a8798;
+  font-size:.75rem;
+  box-shadow:inset 0 0 0 1px #e0e7ef;
+}
+.gd-innings button.active{
+  background:linear-gradient(145deg,#0c3977,#1558a8);
+  box-shadow:0 5px 12px rgba(14,62,127,.25),inset 0 1px 0 rgba(255,255,255,.15);
+}
+
+.gd-field-wrap{padding:12px 12px 7px;background:#edf2f7}
+.gd-field{
+  aspect-ratio:1/1.08;
+  border-radius:22px;
+  border:1px solid rgba(6,32,22,.18);
+  background:
+    radial-gradient(ellipse at 50% 67%,rgba(255,255,255,.045) 0 2%,transparent 2.4%),
+    repeating-radial-gradient(ellipse at 50% 58%,#397e3d 0 11%,#438a44 11% 20%,#397e3d 20% 29%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    inset 0 -25px 55px rgba(0,31,18,.16),
+    0 10px 24px rgba(24,52,77,.15);
+}
+.gd-field:before{
+  content:"";
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 24%,rgba(0,0,0,.035));
+  pointer-events:none;z-index:2;
+}
+.field-dirt{
+  top:65%;width:43%;
+  background:linear-gradient(145deg,#bd824b,#d09a63);
+  box-shadow:inset 0 0 14px rgba(87,49,19,.16),0 0 0 1px rgba(113,69,32,.12);
+}
+.field-infield-grass{top:65%;width:29%;background:#438846}
+.field-foul{height:79%;background:rgba(255,255,255,.84);box-shadow:0 0 1px rgba(255,255,255,.4)}
+.field-base{width:11px;height:11px;border-radius:1px;box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.field-mound{width:20px;height:12px;background:#c88e56;box-shadow:inset 0 1px 2px rgba(255,255,255,.25)}
+
+.gd-player{
+  min-width:0;
+  max-width:118px;
+  z-index:12;
+}
+.gd-pos{display:none}
+.gd-name{
+  min-width:76px;
+  max-width:118px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:4px 7px 4px 4px;
+  border-radius:12px;
+  background:rgba(255,255,255,.96);
+  border:1px solid rgba(10,45,79,.16);
+  box-shadow:0 5px 12px rgba(0,22,17,.22),inset 0 1px 0 #fff;
+  text-align:left;
+}
+.gd-avatar{
+  flex:0 0 25px;
+  width:25px;height:25px;
+  display:grid;place-items:center;
+  border-radius:9px;
+  background:linear-gradient(145deg,#0a3269,#14569f);
+  color:#fff;
+  font-size:.51rem;
+  font-weight:950;
+  letter-spacing:.02em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+}
+.gd-player-text{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  line-height:1.05;
+}
+.gd-player-text b{
+  max-width:76px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:.64rem;
+  color:#102845;
+  letter-spacing:-.01em;
+}
+.gd-player-text small{
+  margin-top:3px;
+  color:#71839a;
+  font-size:.47rem;
+  font-weight:950;
+  letter-spacing:.12em;
+}
+.gd-player.battery .gd-name{
+  background:#f5f9ff;
+  border-color:#8fb6e5;
+  box-shadow:0 5px 13px rgba(0,28,72,.22),inset 0 1px 0 #fff;
+}
+.gd-player.battery .gd-avatar{
+  background:linear-gradient(145deg,#082b5d,#0d438b);
+}
+
+.gd-bench-card{
+  margin:2px 12px 10px;
+  padding:9px 11px 10px;
+  border-radius:13px;
+  border:1px solid #dce4ec;
+  box-shadow:0 5px 14px rgba(20,48,87,.06);
+}
+.gd-bench-title{margin-bottom:6px}
+.gd-bench-title span{
+  display:flex;align-items:center;gap:6px;
+  font-size:.59rem;letter-spacing:.13em;color:#65758a;
+}
+.dugout-dot{width:6px;height:6px;border-radius:50%;background:#174f96;display:inline-block}
+.gd-bench-title small{font-size:.56rem;letter-spacing:.08em}
+.gd-bench{gap:6px}
+.gd-bench span{
+  padding:5px 8px;
+  border-radius:8px;
+  background:#f2f5f8;
+  font-size:.68rem;
+}
+
+.gd-bottom-nav{
+  height:calc(60px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.97);
+  border-top:1px solid #d9e2ec;
+  box-shadow:0 -5px 18px rgba(17,42,70,.07);
+}
+.gd-bottom-nav button{
+  position:relative;
+  gap:2px;
+  font-size:.57rem;
+  letter-spacing:.12em;
+}
+.gd-bottom-nav button.active:before{
+  content:"";
+  position:absolute;top:0;
+  width:46px;height:3px;border-radius:0 0 4px 4px;
+  background:#1555a2;
+}
+.nav-icon{font-size:1rem!important;line-height:1}
+.gd-bottom-nav button.active .nav-icon{transform:translateY(-1px)}
+
+@media(max-width:390px){
+  .gd-field{aspect-ratio:1/1.1}
+  .gd-name{min-width:70px;padding-right:5px}
+  .gd-avatar{width:23px;height:23px;flex-basis:23px}
+  .gd-player-text b{font-size:.6rem;max-width:67px}
+}

@@ -322,7 +322,7 @@ function closeGameDay(){
 function renderGameDay(){
  const lineups=currentGame.lineups, l=lineups[gameDayInning], fieldCount=currentGame.fieldCount||l.POSITIONS.length;
  document.getElementById("gdTeam").textContent=currentGame.team;
- document.getElementById("gdFormat").textContent=`${fieldCount}-player defense • ${lineups.length} innings`;
+ document.getElementById("gdFormat").textContent=`${fieldCount} Player • Inning ${gameDayInning+1} of ${lineups.length}`;
  document.getElementById("gdInningBig").textContent=gameDayInning+1;
  const nav=document.getElementById("gdInnings");nav.innerHTML="";
  lineups.forEach((_,i)=>{const b=document.createElement("button");b.textContent=i+1;b.className=i===gameDayInning?"active":"";b.onclick=()=>{gameDayInning=i;renderGameDay()};nav.appendChild(b)});
@@ -330,7 +330,10 @@ function renderGameDay(){
  l.POSITIONS.forEach(pos=>{
   const name=l.assigned[pos];if(!name||!FIELD_COORDS[pos])return;
   const [x,y]=FIELD_COORDS[pos],d=document.createElement("div");d.className=`gd-player ${(pos==="P"||pos==="C")?"battery":""}`;
-  d.style.left=x+"%";d.style.top=y+"%";d.innerHTML=`<span class="gd-pos">${pos}</span><span class="gd-name">${esc(name)}</span>`;box.appendChild(d);
+  d.style.left=x+"%";d.style.top=y+"%";
+  const initials=name.split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
+  d.innerHTML=`<span class="gd-name"><span class="gd-avatar">${esc(initials)}</span><span class="gd-player-text"><b>${esc(name)}</b><small>${pos}</small></span></span>`;
+  box.appendChild(d);
  });
  const bench=document.getElementById("gdBench"),names=l.bench||[];
  document.getElementById("gdBenchCount").textContent=names.length?`${names.length} sitting`:"Everyone fields";
