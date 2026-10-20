@@ -1,9 +1,14 @@
-FairFielding v0.6.1
+FairFielding
 
-Hotfix built directly from the known-working v0.5 codebase.
+Fair defensive rotation builder for youth baseball coaches.
 
-- Preserves roster rendering and Add Player behavior from v0.5.
-- Preserves v0.5 whole-game exact bench planner.
-- Adds stronger season INF/OF correction.
-- Applies professional visual polish through CSS only to avoid disturbing app controls.
-- Default roster, P/C locks, No 1B, Save Game, and season history remain intact.
+Current build: v0.8.1
+Main files:
+- index.html
+- style.css
+- app.js
+- field-stadium.svg
+- manifest.json
+- vercel.json
+
+Deployment: Vercel
