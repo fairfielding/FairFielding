@@ -1,10 +1,9 @@
 {
   "name": "FairFielding",
   "short_name": "FairFielding",
-  "description": "Fair defensive rotation builder for youth baseball coaches.",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
-  "background_color": "#07101f",
-  "theme_color": "#0b1739"
+  "background_color": "#061426",
+  "theme_color": "#0b1739",
+  "description": "Fair youth baseball defensive rotation and live game bookkeeping."
 }
