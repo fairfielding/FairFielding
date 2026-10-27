@@ -1,232 +1,31 @@
-const demoPlayers=[
- ["Fin",false],["Noah",false],["Lennox",false],["Everette",false],
- ["William",true],["Mason",true],["Zeke",false],["Clapton",true],
- ["Weston",true],["Julian",true],["JW",false],["Gino",false],["James",false]
-];
-
-const batteryDemo=[
- ["Fin","Zeke"],["Noah","Lennox"],["Everette","William"],
- ["Mason","Zeke"],["Noah","Lennox"],["Fin","Everette"]
-];
-
-const HISTORY_KEY="fairfielding-season-v03";
-let players=[];
-let currentGame=null;
-let gameDayInning=0;
-let completedInnings=new Set();
-let gameDayMode="field";
-
-const positions=()=>+document.getElementById("fielders").value===10
- ?["P","C","1B","2B","3B","SS","LF","LC","RC","RF"]
- :["P","C","1B","2B","3B","SS","LF","CF","RF"];
-
-const outfield=()=>+document.getElementById("fielders").value===10
- ?["LF","LC","RC","RF"]:["LF","CF","RF"];
-
-function emptyStat(){return {bench:0,inf:0,out:0,lastPos:"",positions:{},games:0}}
-function loadHistory(){try{const x=JSON.parse(localStorage.getItem(HISTORY_KEY)||"{}");return x&&typeof x==="object"?x:{}}catch(e){return {}}}
-function saveHistory(h){localStorage.setItem(HISTORY_KEY,JSON.stringify(h))}
-function seasonStat(name){const h=loadHistory();return h[name]||emptyStat()}
-function updatePositionNote(){
- const ten=+document.getElementById("fielders").value===10;
- document.getElementById("positionNote").innerHTML=ten
-  ?"<b>10-player field:</b> P, C, 1B, 2B, 3B, SS, LF, LC, RC, RF"
-  :"<b>9-player field:</b> P, C, 1B, 2B, 3B, SS, LF, CF, RF";
-}
-function resetDemo(){
- players=demoPlayers.map((p,i)=>({id:Date.now()+i,name:p[0],active:true,no1b:p[1]}));
- document.getElementById("innings").value="6";document.getElementById("fielders").value="10";
- updatePositionNote();renderPlayers();renderBattery(true);currentGame=null;
- document.getElementById("resultsCard").classList.add("hidden");renderHistory();
-}
-function activePlayers(){return players.filter(p=>p.active&&p.name.trim())}
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c])}
-function renderPlayers(){
- const box=document.getElementById("players");box.innerHTML="";
- players.forEach(p=>{
-  const row=document.createElement("div");row.className="player-row";
-  row.innerHTML=`<input type="checkbox" ${p.active?"checked":""}><input class="pname" value="${esc(p.name)}"><label class="no1b"><input type="checkbox" ${p.no1b?"checked":""}>No 1B</label><button class="remove">×</button>`;
-  const ins=row.querySelectorAll("input");
-  ins[0].onchange=e=>{p.active=e.target.checked;renderBattery(false)};
-  ins[1].oninput=e=>{p.name=e.target.value;renderBattery(false)};
-  ins[2].onchange=e=>p.no1b=e.target.checked;
-  row.querySelector(".remove").onclick=()=>{players=players.filter(x=>x.id!==p.id);renderPlayers();renderBattery(false)};
-  box.appendChild(row);
- });
-}
-function batterySelections(){return [...document.querySelectorAll(".battery-row")].map(r=>[r.querySelector(".pitcher").value,r.querySelector(".catcher").value])}
-function renderBattery(useDemo=false){
- const innings=+document.getElementById("innings").value;
- const old=useDemo?batteryDemo:batterySelections();const names=activePlayers().map(p=>p.name);
- const box=document.getElementById("battery");box.innerHTML="";
- for(let i=0;i<innings;i++){
-  const row=document.createElement("div");row.className="battery-row";
-  const opts=`<option value="">Choose…</option>`+names.map(n=>`<option>${esc(n)}</option>`).join("");
-  row.innerHTML=`<b>Inn ${i+1}</b><label>Pitcher<select class="pitcher">${opts}</select></label><label>Catcher<select class="catcher">${opts}</select></label>`;
-  if(old[i]){row.querySelector(".pitcher").value=old[i][0]||"";row.querySelector(".catcher").value=old[i][1]||""}
-  box.appendChild(row);
- }
-}
-function buildBenchPlan(roster,innings,fieldCount,batteries,season){
- const benchPerInning=Math.max(0,roster.length-fieldCount),totalSlots=benchPerInning*innings,names=roster.map(p=>p.name);
- const base=Math.floor(totalSlots/names.length),extra=totalSlots%names.length;
- const extraOrder=[...names].sort((a,b)=>(season[a]?.bench||0)-(season[b]?.bench||0)||a.localeCompare(b));
- const target=Object.fromEntries(names.map(n=>[n,base]));extraOrder.slice(0,extra).forEach(n=>target[n]++);
- const plan=Array.from({length:innings},()=>[]),remaining={...target};
- function combos(arr,k,start=0,pick=[],out=[]){if(pick.length===k){out.push([...pick]);return out}for(let i=start;i<=arr.length-(k-pick.length);i++){pick.push(arr[i]);combos(arr,k,i+1,pick,out);pick.pop()}return out}
- const options=Array.from({length:innings},(_,inn)=>{const locked=new Set(batteries[inn]);return combos(names.filter(n=>!locked.has(n)),benchPerInning)});
- const order=[...Array(innings).keys()].sort((a,b)=>options[a].length-options[b].length);
- function search(depth){
-  if(depth===order.length)return Object.values(remaining).every(v=>v===0);
-  const inn=order[depth],prev=inn>0?new Set(plan[inn-1]):new Set();
-  const valid=options[inn].filter(group=>group.every(n=>remaining[n]>0));
-  valid.sort((A,B)=>{
-   const consecA=A.reduce((s,n)=>s+(prev.has(n)?1:0),0),consecB=B.reduce((s,n)=>s+(prev.has(n)?1:0),0);
-   const needA=A.reduce((s,n)=>s+remaining[n],0),needB=B.reduce((s,n)=>s+remaining[n],0);
-   const seasonA=A.reduce((s,n)=>s+(season[n]?.bench||0),0),seasonB=B.reduce((s,n)=>s+(season[n]?.bench||0),0);
-   return consecA-consecB||needB-needA||seasonA-seasonB||A.join("|").localeCompare(B.join("|"));
-  });
-  for(const group of valid){plan[inn]=group;group.forEach(n=>remaining[n]--);if(search(depth+1))return true;group.forEach(n=>remaining[n]++);plan[inn]=[]}
-  return false;
- }
- const exact=search(0);
- if(!exact){
-  const counts=Object.fromEntries(names.map(n=>[n,0]));
-  for(let inn=0;inn<innings;inn++){
-   const locked=new Set(batteries[inn]),eligible=names.filter(n=>!locked.has(n));
-   eligible.sort((a,b)=>{const aPrev=inn>0&&plan[inn-1].includes(a)?1:0,bPrev=inn>0&&plan[inn-1].includes(b)?1:0;return counts[a]-counts[b]||aPrev-bPrev||(season[a]?.bench||0)-(season[b]?.bench||0)||a.localeCompare(b)});
-   plan[inn]=eligible.slice(0,benchPerInning);plan[inn].forEach(n=>counts[n]++);
-  }
-  return {plan,counts,target,exact:false};
- }
- return {plan,counts:Object.fromEntries(names.map(n=>[n,target[n]])),target,exact:true};
-}
-function generate(){
- const roster=activePlayers(),innings=+document.getElementById("innings").value,fieldCount=+document.getElementById("fielders").value,batteries=batterySelections(),POSITIONS=positions(),OF=outfield();
- if(roster.length<fieldCount){alert(`You need at least ${fieldCount} active players for a ${fieldCount}-player field.`);return}
- for(let i=0;i<innings;i++){
-  if(!batteries[i][0]||!batteries[i][1]){alert(`Choose a pitcher and catcher for inning ${i+1}.`);return}
-  if(batteries[i][0]===batteries[i][1]){alert(`Inning ${i+1}: pitcher and catcher must be different.`);return}
- }
- const stats={},season={};roster.forEach(p=>{stats[p.name]=emptyStat();season[p.name]=seasonStat(p.name)});
- const benchInfo=buildBenchPlan(roster,innings,fieldCount,batteries,season);
- const lineups=[],warnings=[],names=roster.map(p=>p.name);
- const infPositions=POSITIONS.filter(p=>!OF.includes(p));
- const openInf=infPositions.filter(p=>p!=="P"&&p!=="C");
- const openOF=OF.slice();
- const skeleton=Array.from({length:innings},(_,inn)=>({P:batteries[inn][0],C:batteries[inn][1],bench:new Set(benchInfo.plan[inn]||[])}));
- const fieldInnings={},lockedInf={};names.forEach(n=>{fieldInnings[n]=0;lockedInf[n]=0});
- for(let inn=0;inn<innings;inn++){names.forEach(n=>{if(!skeleton[inn].bench.has(n))fieldInnings[n]++});lockedInf[skeleton[inn].P]++;lockedInf[skeleton[inn].C]++}
- const totalInfSlots=infPositions.length*innings,targetInf={},base=Math.floor(totalInfSlots/names.length);
- names.forEach(n=>targetInf[n]=Math.min(fieldInnings[n],Math.max(lockedInf[n],base)));
- let assignedTarget=Object.values(targetInf).reduce((a,b)=>a+b,0);
- const targetOrder=[...names].sort((a,b)=>{const A=season[a]||emptyStat(),B=season[b]||emptyStat();return ((A.inf||0)-(A.out||0))-((B.inf||0)-(B.out||0))||(A.inf||0)-(B.inf||0)||a.localeCompare(b)});
- while(assignedTarget<totalInfSlots){let moved=false;for(const n of targetOrder){if(targetInf[n]<fieldInnings[n]){targetInf[n]++;assignedTarget++;moved=true;if(assignedTarget===totalInfSlots)break}}if(!moved)break}
- while(assignedTarget>totalInfSlots){const reducible=[...names].filter(n=>targetInf[n]>lockedInf[n]).sort((a,b)=>{const A=season[a]||emptyStat(),B=season[b]||emptyStat();return ((B.inf||0)-(B.out||0))-((A.inf||0)-(A.out||0))||targetInf[b]-targetInf[a]||a.localeCompare(b)});if(!reducible.length)break;targetInf[reducible[0]]--;assignedTarget--}
- const remainingInf=Object.fromEntries(names.map(n=>[n,targetInf[n]-lockedInf[n]]));
- const infGroups=Array.from({length:innings},(_,inn)=>{const locked=new Set([skeleton[inn].P,skeleton[inn].C]);const eligible=names.filter(n=>!locked.has(n)&&!skeleton[inn].bench.has(n));function combos(arr,k,start=0,pick=[],out=[]){if(pick.length===k){out.push([...pick]);return out}for(let i=start;i<=arr.length-(k-pick.length);i++){pick.push(arr[i]);combos(arr,k,i+1,pick,out);pick.pop()}return out}return combos(eligible,openInf.length)});
- const infPlan=Array.from({length:innings},()=>[]),inningOrder=[...Array(innings).keys()].sort((a,b)=>infGroups[a].length-infGroups[b].length);
- function solveInf(depth){if(depth===inningOrder.length)return Object.values(remainingInf).every(v=>v===0);const inn=inningOrder[depth],valid=infGroups[inn].filter(g=>g.every(n=>remainingInf[n]>0));valid.sort((A,B)=>B.reduce((s,n)=>s+remainingInf[n],0)-A.reduce((s,n)=>s+remainingInf[n],0)||A.join("|").localeCompare(B.join("|")));for(const g of valid){infPlan[inn]=g;g.forEach(n=>remainingInf[n]--);if(solveInf(depth+1))return true;g.forEach(n=>remainingInf[n]++);infPlan[inn]=[]}return false}
- const exactInf=solveInf(0);
- if(!exactInf){warnings.push("Pitcher/catcher locks or bench constraints prevent the ideal whole-game INF/OF split. FairFielding used the closest available balance.");names.forEach(n=>remainingInf[n]=Math.max(0,targetInf[n]-lockedInf[n]));for(let inn=0;inn<innings;inn++){const locked=new Set([skeleton[inn].P,skeleton[inn].C]);const eligible=names.filter(n=>!locked.has(n)&&!skeleton[inn].bench.has(n));eligible.sort((a,b)=>remainingInf[b]-remainingInf[a]||a.localeCompare(b));infPlan[inn]=eligible.slice(0,openInf.length);infPlan[inn].forEach(n=>remainingInf[n]=Math.max(0,remainingInf[n]-1))}}
- for(let inn=0;inn<innings;inn++){
-  const P=skeleton[inn].P,C=skeleton[inn].C,assigned={P,C},bench=[...skeleton[inn].bench],infNames=new Set(infPlan[inn]);
-  const available=names.filter(n=>n!==P&&n!==C&&!skeleton[inn].bench.has(n)),ofNames=available.filter(n=>!infNames.has(n));
-  for(const [pos,n] of [["P",P],["C",C]]){stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;stats[n].inf++;stats[n].lastPos=pos}
-  const used=new Set([P,C]);
-  function assignPool(posList,pool){for(const pos of posList){let cand=pool.filter(n=>!used.has(n)&&!(pos==="1B"&&roster.find(p=>p.name===n)?.no1b));if(!cand.length)cand=pool.filter(n=>!used.has(n));cand.sort((a,b)=>{const A=stats[a],B=stats[b],SA=season[a]||emptyStat(),SB=season[b]||emptyStat();return (A.lastPos===pos?1:0)-(B.lastPos===pos?1:0)||(A.positions[pos]||0)-(B.positions[pos]||0)||(SA.positions?.[pos]||0)-(SB.positions?.[pos]||0)||a.localeCompare(b)});if(cand[0]){const n=cand[0];assigned[pos]=n;used.add(n);stats[n].positions[pos]=(stats[n].positions[pos]||0)+1;if(OF.includes(pos))stats[n].out++;else stats[n].inf++;stats[n].lastPos=pos}}}
-  assignPool(openInf,[...infNames]);assignPool(openOF,ofNames);bench.forEach(n=>{stats[n].bench++;stats[n].lastPos="BENCH"});lineups.push({assigned,bench,POSITIONS});
- }
- roster.filter(p=>p.no1b).forEach(p=>{if(lineups.some(l=>l.assigned["1B"]===p.name))warnings.push(`${p.name} was marked No 1B but had to be used there because no eligible player was available.`)});
- if(!benchInfo.exact)warnings.push("Locked pitcher/catcher assignments prevent a perfectly even bench rotation.");
- currentGame={team:document.getElementById("teamName").value||"Team",fieldCount,stats:JSON.parse(JSON.stringify(stats)),lineups:JSON.parse(JSON.stringify(lineups)),originalLineups:JSON.parse(JSON.stringify(lineups)),saved:false,gameDayStarted:false,book:{pitchers:{},count:{balls:0,strikes:0},undo:[]}};
- completedInnings=new Set();renderResults(lineups,stats,warnings,fieldCount);
-}
-function renderResults(lineups,stats,warnings,fieldCount){
- const results=document.getElementById("results"),warn=document.getElementById("warnings"),summary=document.getElementById("summary");
- document.getElementById("resultTitle").textContent=`${document.getElementById("teamName").value||"Team"} • ${fieldCount}-player Defensive Rotation`;
- warn.innerHTML=warnings.length?warnings.map(w=>`<div class="warning">${esc(w)}</div>`).join(""):`<div class="ok">✓ ${fieldCount}-player rotation generated with your locked pitcher/catcher assignments, 1B restrictions, and season fairness history.</div>`;
- results.innerHTML="";
- lineups.forEach((l,i)=>{const d=document.createElement("div");d.className="inning";let rows=l.POSITIONS.map(pos=>`<tr><td>${pos}</td><td class="${pos==="P"||pos==="C"?"battery":""}">${esc(l.assigned[pos]||"—")}</td></tr>`).join("");if(l.bench.length)rows+=`<tr><td>Bench</td><td class="bench">${l.bench.map(esc).join(", ")}</td></tr>`;d.innerHTML=`<h3>Inning ${i+1}</h3><table><thead><tr><th>Position</th><th>Player</th></tr></thead><tbody>${rows}</tbody></table>`;results.appendChild(d)});
- const h=loadHistory();summary.innerHTML=`<h3>Fairness check</h3><div class="summary-grid">`+Object.entries(stats).map(([n,s])=>{const old=h[n]||emptyStat();return `<div class="stat"><b>${esc(n)}</b><span>Game: Bench ${s.bench} • INF ${s.inf} • OF ${s.out}</span><span class="season-line">If saved: Bench ${old.bench+s.bench} • INF ${old.inf+s.inf} • OF ${old.out+s.out}</span></div>`}).join("")+`</div>`;
- const saveBtn=document.getElementById("saveGame");saveBtn.disabled=false;saveBtn.textContent="Save This Game";document.getElementById("saveHint").textContent="Only save the lineup you actually use. Generating a lineup does not change season history.";document.getElementById("resultsCard").classList.remove("hidden");document.getElementById("resultsCard").scrollIntoView({behavior:"smooth"});
-}
-function saveCurrentGame(){if(!currentGame||currentGame.saved){alert("Generate a lineup first, or this game has already been saved.");return}const h=loadHistory();Object.entries(currentGame.stats).forEach(([name,s])=>{const t=h[name]||emptyStat();t.bench=(t.bench||0)+s.bench;t.inf=(t.inf||0)+s.inf;t.out=(t.out||0)+s.out;t.games=(t.games||0)+1;t.positions=t.positions||{};Object.entries(s.positions||{}).forEach(([pos,count])=>t.positions[pos]=(t.positions[pos]||0)+count);t.lastPos=s.lastPos||t.lastPos||"";h[name]=t});saveHistory(h);currentGame.saved=true;const b=document.getElementById("saveGame");b.disabled=true;b.textContent="Game Saved ✓";document.getElementById("saveHint").textContent="This game's fielding totals are now included in season fairness.";renderHistory()}
-function renderHistory(){const box=document.getElementById("history"),h=loadHistory(),names=Object.keys(h).filter(n=>{const s=h[n];return (s.games||0)||(s.inf||0)||(s.out||0)||(s.bench||0)});if(!names.length){box.innerHTML=`<div class="empty-history">No saved games yet. Your first saved lineup will start the season history.</div>`;return}names.sort((a,b)=>a.localeCompare(b));box.innerHTML=`<div class="history-grid">`+names.map(n=>{const s=h[n],pos=Object.entries(s.positions||{}).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([p,v])=>`${p} ${v}`).join(" • ");return `<div class="history-player"><b>${esc(n)}</b><span>Games ${s.games||0} • Bench ${s.bench||0} • INF ${s.inf||0} • OF ${s.out||0}</span><small>${esc(pos||"No position history yet")}</small></div>`}).join("")+`</div>`}
-function resetSeasonHistory(){if(!Object.keys(loadHistory()).length){alert("There is no season history to reset.");return}if(confirm("Reset ALL saved season history? This cannot be undone.")){localStorage.removeItem(HISTORY_KEY);currentGame=null;renderHistory();document.getElementById("resultsCard").classList.add("hidden");alert("Season history has been reset.")}}
-
-const FIELD_COORDS={"P":[50,68],"C":[50,88],"1B":[75,68],"2B":[63,56],"3B":[25,68],"SS":[37,56],"LF":[16,35],"CF":[50,23],"RF":[84,35],"LC":[36,27],"RC":[64,27]};
-function openGameDay(){if(!currentGame||!currentGame.lineups?.length){alert("Generate a lineup first.");return}if(!currentGame.gameDayStarted){completedInnings=new Set();currentGame.gameDayStarted=true}gameDayInning=0;gameDayMode="field";document.getElementById("builderView").classList.add("hidden");document.getElementById("gameDayView").classList.remove("hidden");document.body.style.overflow="hidden";renderGameDay()}
-function closeGameDay(){document.getElementById("gameDayView").classList.add("hidden");document.getElementById("builderView").classList.remove("hidden");document.body.style.overflow=""}
-function renderGameDay(){
- const lineups=currentGame.lineups,l=lineups[gameDayInning],fieldCount=currentGame.fieldCount||l.POSITIONS.length;
- document.getElementById("gdTeam").textContent=currentGame.team;document.getElementById("gdFormat").textContent=`${fieldCount} PLAYERS  •  ${lineups.length} INNINGS`;document.getElementById("gdInningOf").textContent=`OF ${lineups.length}`;document.getElementById("gdInningBig").textContent=gameDayInning+1;
- const nav=document.getElementById("gdInnings");nav.innerHTML="";lineups.forEach((_,i)=>{const b=document.createElement("button");b.textContent=completedInnings.has(i)?"✓":i+1;b.className=(i===gameDayInning?"active ":"")+(completedInnings.has(i)?"completed":"");b.onclick=()=>{gameDayInning=i;renderGameDay()};nav.appendChild(b)});
- const box=document.getElementById("gdPlayers");box.innerHTML="";l.POSITIONS.forEach(pos=>{const name=l.assigned[pos];if(!name||!FIELD_COORDS[pos])return;const [x,y]=FIELD_COORDS[pos],d=document.createElement("button");d.className=`gd-player ${(pos==="P"||pos==="C")?"battery":""}`;d.style.left=x+"%";d.style.top=y+"%";d.innerHTML=`<span class="gd-pos">${pos}</span><span class="gd-name">${esc(name)}</span>`;d.onclick=()=>openPositionChange(pos);box.appendChild(d)});
- const bench=document.getElementById("gdBench"),names=l.bench||[];document.getElementById("gdBenchCount").textContent=names.length?`${names.length} sitting`:"Everyone fields";bench.innerHTML="";if(names.length)names.forEach(n=>{const b=document.createElement("button");b.textContent=n;b.onclick=()=>openBenchChange(n);bench.appendChild(b)});else bench.innerHTML=`<span class="none">No players on the bench this inning.</span>`;
- const done=completedInnings.has(gameDayInning),complete=document.getElementById("gdComplete");complete.disabled=done;complete.textContent=done?"✓ INNING COMPLETE":"✓ COMPLETE INNING";document.getElementById("gdChange").disabled=done;
- renderBookkeeping();setGameDayMode(gameDayMode);
-}
-function changeInning(delta){const max=currentGame?.lineups?.length||0;if(!max)return;gameDayInning=Math.max(0,Math.min(max-1,gameDayInning+delta));renderGameDay()}
-function showSheet(title,text,body=""){document.getElementById("gdSheetTitle").textContent=title;document.getElementById("gdSheetText").textContent=text||"";document.getElementById("gdSheetBody").innerHTML=body;document.getElementById("gdSheet").classList.remove("hidden")}
-function closeSheet(){document.getElementById("gdSheet").classList.add("hidden")}
-function lineupPlayerPosition(l,name){for(const p of l.POSITIONS)if(l.assigned[p]===name)return p;return l.bench?.includes(name)?"BENCH":""}
-function swapPlayersInInning(a,b){if(completedInnings.has(gameDayInning)){alert("Completed innings are locked.");return}const l=currentGame.lineups[gameDayInning],pa=lineupPlayerPosition(l,a),pb=lineupPlayerPosition(l,b);if(!pa||!pb||a===b)return;if(pa==="BENCH"&&pb==="BENCH")return;if(pa==="BENCH"){l.bench=l.bench.filter(n=>n!==a);l.bench.push(b);l.assigned[pb]=a}else if(pb==="BENCH"){l.bench=l.bench.filter(n=>n!==b);l.bench.push(a);l.assigned[pa]=b}else{l.assigned[pa]=b;l.assigned[pb]=a}closeSheet();renderGameDay()}
-function changeChoicesFor(name){const l=currentGame.lineups[gameDayInning],all=[...l.POSITIONS.map(p=>l.assigned[p]),...(l.bench||[])].filter(Boolean);return all.filter(n=>n!==name)}
-function openPositionChange(pos){if(completedInnings.has(gameDayInning))return;const l=currentGame.lineups[gameDayInning],name=l.assigned[pos],choices=changeChoicesFor(name);showSheet(`Change ${pos}`,`${name} is currently playing ${pos}.`,`<div class="gd-choice-list">${choices.map(n=>`<button data-swap="${esc(n)}">${esc(n)}<small>${lineupPlayerPosition(l,n)}</small></button>`).join("")}</div>`);document.querySelectorAll("#gdSheetBody [data-swap]").forEach(b=>b.onclick=()=>swapPlayersInInning(name,b.dataset.swap))}
-function openBenchChange(name){if(completedInnings.has(gameDayInning))return;const l=currentGame.lineups[gameDayInning],choices=l.POSITIONS.map(p=>l.assigned[p]).filter(Boolean);showSheet(`Put ${name} in`,`Choose who ${name} should replace this inning.`,`<div class="gd-choice-list">${choices.map(n=>`<button data-swap="${esc(n)}">${esc(n)}<small>${lineupPlayerPosition(l,n)}</small></button>`).join("")}</div>`);document.querySelectorAll("#gdSheetBody [data-swap]").forEach(b=>b.onclick=()=>swapPlayersInInning(name,b.dataset.swap))}
-function openChangeMenu(){if(completedInnings.has(gameDayInning))return;showSheet("Change This Inning","Tap a player on the field or in the dugout to swap them. You can also mark a player unavailable for the rest of the game.",`<button class="gd-sheet-action" id="gdUnavailable">PLAYER UNAVAILABLE</button>`);document.getElementById("gdUnavailable").onclick=openUnavailableMenu}
-function openUnavailableMenu(){const futurePlayers=new Set();for(let i=gameDayInning;i<currentGame.lineups.length;i++){const l=currentGame.lineups[i];l.POSITIONS.forEach(p=>futurePlayers.add(l.assigned[p]));(l.bench||[]).forEach(n=>futurePlayers.add(n))}showSheet("Player Unavailable","Choose a player who cannot continue. FairFielding will remove them from remaining innings and fill their spots.",`<div class="gd-choice-list">${[...futurePlayers].filter(Boolean).sort().map(n=>`<button data-out="${esc(n)}">${esc(n)}</button>`).join("")}</div>`);document.querySelectorAll("#gdSheetBody [data-out]").forEach(b=>b.onclick=()=>markUnavailable(b.dataset.out))}
-function markUnavailable(name){if(!confirm(`${name} unavailable for the rest of the game? Completed innings will not change.`))return;const start=completedInnings.has(gameDayInning)?gameDayInning+1:gameDayInning;for(let i=start;i<currentGame.lineups.length;i++){const l=currentGame.lineups[i],pos=lineupPlayerPosition(l,name);if(!pos)continue;if(pos==="BENCH"){l.bench=l.bench.filter(n=>n!==name);continue}const replacement=(l.bench||[]).find(n=>n!==name);if(replacement){l.assigned[pos]=replacement;l.bench=l.bench.filter(n=>n!==replacement&&n!==name)}else delete l.assigned[pos]}closeSheet();renderGameDay();alert(`${name} was removed from the remaining innings. Review the upcoming innings before continuing.`)}
-function inningStat(l){const out=new Set(["LF","LC","RC","CF","RF"]),s={};l.POSITIONS.forEach(pos=>{const n=l.assigned[pos];if(!n)return;s[n]=s[n]||emptyStat();s[n].positions[pos]=(s[n].positions[pos]||0)+1;if(out.has(pos))s[n].out++;else s[n].inf++});(l.bench||[]).forEach(n=>{s[n]=s[n]||emptyStat();s[n].bench++});return s}
-function completeCurrentInning(){if(completedInnings.has(gameDayInning))return;completedInnings.add(gameDayInning);renderGameDay();if(gameDayInning<currentGame.lineups.length-1){setTimeout(()=>{gameDayInning++;renderGameDay()},180)}else showSheet("Game Complete","All innings are complete. Save the actual Game Day results to season history.",`<button class="primary" id="gdSaveActual">SAVE GAME TO SEASON</button>`);const save=document.getElementById("gdSaveActual");if(save)save.onclick=saveActualGame}
-function saveActualGame(){if(currentGame.saved){alert("This game is already saved.");return}if(completedInnings.size!==currentGame.lineups.length){alert("Complete every inning first.");return}const actual={};currentGame.lineups.forEach(l=>{const one=inningStat(l);Object.entries(one).forEach(([n,s])=>{const t=actual[n]||emptyStat();t.bench+=s.bench;t.inf+=s.inf;t.out+=s.out;Object.entries(s.positions||{}).forEach(([p,c])=>t.positions[p]=(t.positions[p]||0)+c);actual[n]=t})});currentGame.stats=actual;saveCurrentGame();closeSheet();alert("Game saved. Season history now reflects what actually happened on the field.")}
-
-/* v0.9 live pitching bookkeeping */
-function ensureBook(){if(!currentGame.book)currentGame.book={pitchers:{},count:{balls:0,strikes:0},undo:[]};if(!currentGame.book.pitchers)currentGame.book.pitchers={};if(!currentGame.book.count)currentGame.book.count={balls:0,strikes:0};if(!currentGame.book.undo)currentGame.book.undo=[]}
-function pitcherName(){return currentGame?.lineups?.[gameDayInning]?.assigned?.P||"—"}
-function pitcherStat(name){ensureBook();if(!currentGame.book.pitchers[name])currentGame.book.pitchers[name]={pitches:0,balls:0,strikes:0,ks:0,walks:0,hits:0,runs:0,batters:0,outs:0};return currentGame.book.pitchers[name]}
-function pushUndo(){ensureBook();currentGame.book.undo.push(JSON.stringify({pitchers:currentGame.book.pitchers,count:currentGame.book.count}));if(currentGame.book.undo.length>30)currentGame.book.undo.shift()}
-function resetCount(){currentGame.book.count={balls:0,strikes:0}}
-function pitch(type){
- if(completedInnings.has(gameDayInning))return;
- const n=pitcherName();if(n==="—")return;pushUndo();const s=pitcherStat(n),c=currentGame.book.count;s.pitches++;
- if(type==="ball"){s.balls++;c.balls++;if(c.balls>=4){s.walks++;s.batters++;resetCount()}}
- if(type==="strike"){s.strikes++;c.strikes++;if(c.strikes>=3){s.ks++;s.outs++;s.batters++;resetCount()}}
- if(type==="foul"){s.strikes++;if(c.strikes<2)c.strikes++}
- renderBookkeeping();
-}
-function plateResult(type){
- if(completedInnings.has(gameDayInning))return;
- const n=pitcherName();if(n==="—")return;pushUndo();const s=pitcherStat(n);
- if(type==="out"){s.outs++;s.batters++}
- if(type==="hit"){s.hits++;s.batters++}
- if(type==="walk"){s.walks++;s.batters++}
- if(type==="k"){s.ks++;s.outs++;s.batters++}
- resetCount();renderBookkeeping();
-}
-function addRun(){if(completedInnings.has(gameDayInning))return;const n=pitcherName();if(n==="—")return;pushUndo();pitcherStat(n).runs++;renderBookkeeping()}
-function undoBook(){ensureBook();const x=currentGame.book.undo.pop();if(!x)return;const old=JSON.parse(x);currentGame.book.pitchers=old.pitchers;currentGame.book.count=old.count;renderBookkeeping()}
-function setGameDayMode(mode){
- gameDayMode=mode;
- document.getElementById("gdFieldPanel").classList.toggle("hidden",mode!=="field");
- document.getElementById("gdBookPanel").classList.toggle("hidden",mode!=="book");
- document.getElementById("fieldTab").classList.toggle("active",mode==="field");
- document.getElementById("battingTab").classList.toggle("active",mode==="book");
-}
-function renderBookkeeping(){
- if(!currentGame)return;ensureBook();const n=pitcherName(),s=pitcherStat(n),c=currentGame.book.count;
- document.getElementById("bkPitcher").textContent=n;document.getElementById("bkCount").textContent=`${c.balls} – ${c.strikes}`;
- document.getElementById("bkPitches").textContent=s.pitches;document.getElementById("bkBalls").textContent=s.balls;document.getElementById("bkStrikes").textContent=s.strikes;document.getElementById("bkKs").textContent=s.ks;document.getElementById("bkWalks").textContent=s.walks;document.getElementById("bkHits").textContent=s.hits;document.getElementById("bkRuns").textContent=s.runs;document.getElementById("bkBatters").textContent=s.batters;
- document.getElementById("bkUndo").disabled=!currentGame.book.undo.length||completedInnings.has(gameDayInning);
-}
-let swipeStartX=null;document.getElementById("gdSwipeArea").addEventListener("touchstart",e=>{swipeStartX=e.changedTouches[0].clientX},{passive:true});document.getElementById("gdSwipeArea").addEventListener("touchend",e=>{if(swipeStartX===null)return;const dx=e.changedTouches[0].clientX-swipeStartX;if(Math.abs(dx)>45)changeInning(dx<0?1:-1);swipeStartX=null},{passive:true});
-
-document.getElementById("addPlayer").onclick=()=>{players.push({id:Date.now(),name:"",active:true,no1b:false});renderPlayers();renderBattery(false)};
-document.getElementById("innings").onchange=()=>renderBattery(false);
-document.getElementById("fielders").onchange=()=>{updatePositionNote();currentGame=null;document.getElementById("resultsCard").classList.add("hidden")};
-document.getElementById("generate").onclick=generate;document.getElementById("reset").onclick=()=>{resetDemo();renderPlayers();renderBattery();renderHistory()};document.getElementById("saveGame").onclick=saveCurrentGame;document.getElementById("resetHistory").onclick=resetSeasonHistory;document.getElementById("openGameDay").onclick=openGameDay;document.getElementById("closeGameDay").onclick=closeGameDay;document.getElementById("gdPrev").onclick=()=>changeInning(-1);document.getElementById("gdNext").onclick=()=>changeInning(1);document.getElementById("gameTools").onclick=()=>showSheet("Game Tools","Completed innings stay locked. Use Change for substitutions or to mark a player unavailable.");document.getElementById("fieldTab").onclick=()=>setGameDayMode("field");document.getElementById("battingTab").onclick=()=>setGameDayMode("book");document.getElementById("gdSheetClose").onclick=closeSheet;
-document.getElementById("gdChange").onclick=openChangeMenu;document.getElementById("gdComplete").onclick=completeCurrentInning;document.getElementById("gdSheet").onclick=e=>{if(e.target.id==="gdSheet")e.currentTarget.classList.add("hidden")};
-document.getElementById("bkBall").onclick=()=>pitch("ball");document.getElementById("bkStrike").onclick=()=>pitch("strike");document.getElementById("bkFoul").onclick=()=>pitch("foul");document.getElementById("bkOut").onclick=()=>plateResult("out");document.getElementById("bkHit").onclick=()=>plateResult("hit");document.getElementById("bkWalk").onclick=()=>plateResult("walk");document.getElementById("bkK").onclick=()=>plateResult("k");document.getElementById("bkRun").onclick=addRun;document.getElementById("bkUndo").onclick=undoBook;
-
-resetDemo();renderPlayers();renderBattery();renderHistory();
+const demoPlayers=[["Fin",false],["Noah",false],["Lennox",false],["Everette",false],["William",true],["Mason",true],["Zeke",false],["Clapton",true],["Weston",true],["Julian",true],["JW",false],["Gino",false],["James",false]];
+const batteryDemo=[["Fin","Zeke"],["Noah","Lennox"],["Everette","William"],["Mason","Zeke"],["Noah","Lennox"],["Fin","Everette"]];
+const HISTORY_KEY="fairfielding-season-v03";let players=[],currentGame=null,gameDayInning=0,completedInnings=new Set(),gameDayMode="field";
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const positions=()=>+$('fielders').value===10?["P","C","1B","2B","3B","SS","LF","LC","RC","RF"]:["P","C","1B","2B","3B","SS","LF","CF","RF"];
+const outfield=()=>+$('fielders').value===10?["LF","LC","RC","RF"]:["LF","CF","RF"];
+function emptyStat(){return{bench:0,inf:0,out:0,lastPos:"",positions:{},games:0}}function loadHistory(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||"{}")||{}}catch{return{}}}function saveHistory(h){localStorage.setItem(HISTORY_KEY,JSON.stringify(h))}function seasonStat(n){return loadHistory()[n]||emptyStat()}
+function updatePositionNote(){$('positionNote').innerHTML=+$('fielders').value===10?"<b>10-player field:</b> P, C, 1B, 2B, 3B, SS, LF, LC, RC, RF":"<b>9-player field:</b> P, C, 1B, 2B, 3B, SS, LF, CF, RF"}
+function activePlayers(){return players.filter(p=>p.active&&p.name.trim())}function resetDemo(){players=demoPlayers.map((p,i)=>({id:Date.now()+i,name:p[0],active:true,no1b:p[1]}));$('innings').value=6;$('fielders').value=10;updatePositionNote();renderPlayers();renderBattery(true);currentGame=null;$('resultsCard').classList.add('hidden');renderHistory()}
+function renderPlayers(){const b=$('players');b.innerHTML='';players.forEach(p=>{const r=document.createElement('div');r.className='player-row';r.innerHTML=`<input type="checkbox" ${p.active?'checked':''}><input class="pname" value="${esc(p.name)}"><label class="no1b"><input type="checkbox" ${p.no1b?'checked':''}>No 1B</label><button class="remove">×</button>`;const i=r.querySelectorAll('input');i[0].onchange=e=>{p.active=e.target.checked;renderBattery(false)};i[1].oninput=e=>{p.name=e.target.value;renderBattery(false)};i[2].onchange=e=>p.no1b=e.target.checked;r.querySelector('.remove').onclick=()=>{players=players.filter(x=>x.id!==p.id);renderPlayers();renderBattery(false)};b.appendChild(r)})}
+function batterySelections(){return[...document.querySelectorAll('.battery-row')].map(r=>[r.querySelector('.pitcher').value,r.querySelector('.catcher').value])}function renderBattery(useDemo=false){const count=+$('innings').value,old=useDemo?batteryDemo:batterySelections(),names=activePlayers().map(p=>p.name),b=$('battery');b.innerHTML='';for(let x=0;x<count;x++){const r=document.createElement('div');r.className='battery-row';const opts='<option value="">Choose…</option>'+names.map(n=>`<option>${esc(n)}</option>`).join('');r.innerHTML=`<b>Inn ${x+1}</b><label>Pitcher<select class="pitcher">${opts}</select></label><label>Catcher<select class="catcher">${opts}</select></label>`;if(old[x]){r.querySelector('.pitcher').value=old[x][0]||'';r.querySelector('.catcher').value=old[x][1]||''}b.appendChild(r)}}
+function statLineups(lineups,end=lineups.length){const s={};for(let i=0;i<end;i++){const l=lineups[i];l.POSITIONS.forEach(pos=>{const n=l.assigned[pos];if(!n)return;const t=s[n]||(s[n]=emptyStat());t.positions[pos]=(t.positions[pos]||0)+1;(outfield().includes(pos)?t.out++:t.inf++);t.lastPos=pos});(l.bench||[]).forEach(n=>{const t=s[n]||(s[n]=emptyStat());t.bench++;t.lastPos='BENCH'})}return s}
+function buildFuture(roster,start,innings,fieldCount,batteries,pastStats){const POS=positions(),OF=outfield(),open=POS.filter(p=>p!=='P'&&p!=='C'),names=roster.map(p=>p.name),future=[];const running={};names.forEach(n=>{const p=pastStats[n]||emptyStat(),se=seasonStat(n);running[n]={bench:p.bench,inf:p.inf,out:p.out,lastPos:p.lastPos,positions:{...(p.positions||{})},season:se}});for(let inn=start;inn<innings;inn++){let [P,C]=batteries[inn]||[];if(!names.includes(P))P='';if(!names.includes(C)||C===P)C='';const rankBattery=exclude=>[...names].filter(n=>n!==exclude).sort((a,b)=>(running[a].inf+running[a].out)-(running[b].inf+running[b].out)||a.localeCompare(b))[0];if(!P)P=rankBattery('');if(!C)C=rankBattery(P);const locked=new Set([P,C]);const benchN=Math.max(0,names.length-fieldCount);const bench=[...names].filter(n=>!locked.has(n)).sort((a,b)=>running[a].bench-running[b].bench||(running[a].lastPos==='BENCH'?1:0)-(running[b].lastPos==='BENCH'?1:0)||a.localeCompare(b)).slice(0,benchN);const available=names.filter(n=>!locked.has(n)&&!bench.includes(n)),assigned={P,C},used=new Set([P,C]);for(const pos of open){let cand=available.filter(n=>!used.has(n)&&!(pos==='1B'&&roster.find(p=>p.name===n)?.no1b));if(!cand.length)cand=available.filter(n=>!used.has(n));cand.sort((a,b)=>{const A=running[a],B=running[b],aOF=OF.includes(pos);const catA=aOF?A.out:A.inf,catB=aOF?B.out:B.inf;return catA-catB+(A.lastPos===pos?2:0)-(B.lastPos===pos?2:0)||(A.positions[pos]||0)-(B.positions[pos]||0)||(A.season.positions?.[pos]||0)-(B.season.positions?.[pos]||0)||a.localeCompare(b)});const n=cand[0];if(n){assigned[pos]=n;used.add(n)}}const l={assigned,bench,POSITIONS:POS};future.push(l);const one=statLineups([l],1);Object.entries(one).forEach(([n,v])=>{const r=running[n];r.bench+=v.bench;r.inf+=v.inf;r.out+=v.out;r.lastPos=v.lastPos;Object.entries(v.positions).forEach(([p,c])=>r.positions[p]=(r.positions[p]||0)+c)})}return future}
+function generate(){const roster=activePlayers(),innings=+$('innings').value,fieldCount=+$('fielders').value,b=batterySelections();if(roster.length<fieldCount)return alert(`You need at least ${fieldCount} active players.`);for(let i=0;i<innings;i++)if(!b[i][0]||!b[i][1]||b[i][0]===b[i][1])return alert(`Choose a different pitcher and catcher for inning ${i+1}.`);const lineups=buildFuture(roster,0,innings,fieldCount,b,{}),stats=statLineups(lineups);currentGame={team:$('teamName').value||'Team',fieldCount,roster:JSON.parse(JSON.stringify(roster)),batteries:JSON.parse(JSON.stringify(b)),stats,lineups,originalLineups:JSON.parse(JSON.stringify(lineups)),saved:false,gameDayStarted:false,departed:[],book:{pitchers:{},count:{balls:0,strikes:0},undo:[]}};completedInnings=new Set();renderResults(lineups,stats,[],fieldCount)}
+function renderResults(lineups,stats,warnings,fieldCount){$('resultTitle').textContent=`${$('teamName').value||'Team'} • ${fieldCount}-player Defensive Rotation`;$('warnings').innerHTML=warnings.length?warnings.map(w=>`<div class="warning">${esc(w)}</div>`).join(''):`<div class="ok">✓ Rotation generated with pitcher/catcher assignments, restrictions, and fairness history.</div>`;$('results').innerHTML=lineups.map((l,i)=>`<div class="inning"><h3>Inning ${i+1}</h3><table>${l.POSITIONS.map(p=>`<tr><td>${p}</td><td>${esc(l.assigned[p]||'—')}</td></tr>`).join('')}${l.bench.length?`<tr><td>Bench</td><td>${l.bench.map(esc).join(', ')}</td></tr>`:''}</table></div>`).join('');const h=loadHistory();$('summary').innerHTML='<h3>Fairness check</h3><div class="summary-grid">'+Object.entries(stats).map(([n,s])=>{const o=h[n]||emptyStat();return`<div class="stat"><b>${esc(n)}</b><span>Game: Bench ${s.bench} • INF ${s.inf} • OF ${s.out}</span><span>If saved: Bench ${o.bench+s.bench} • INF ${o.inf+s.inf} • OF ${o.out+s.out}</span></div>`}).join('')+'</div>';$('saveGame').disabled=false;$('saveGame').textContent='Save This Game';$('resultsCard').classList.remove('hidden')}
+function saveCurrentGame(){if(!currentGame||currentGame.saved)return alert('Generate a lineup first, or this game has already been saved.');const h=loadHistory();Object.entries(currentGame.stats).forEach(([n,s])=>{const t=h[n]||emptyStat();t.bench+=s.bench;t.inf+=s.inf;t.out+=s.out;t.games++;Object.entries(s.positions||{}).forEach(([p,c])=>t.positions[p]=(t.positions[p]||0)+c);t.lastPos=s.lastPos||t.lastPos;h[n]=t});saveHistory(h);currentGame.saved=true;$('saveGame').disabled=true;$('saveGame').textContent='Game Saved ✓';renderHistory()}
+function renderHistory(){const h=loadHistory(),names=Object.keys(h).filter(n=>h[n].games||h[n].bench||h[n].inf||h[n].out);$('history').innerHTML=names.length?'<div class="history-grid">'+names.sort().map(n=>{const s=h[n];return`<div class="history-player"><b>${esc(n)}</b><span>Games ${s.games||0} • Bench ${s.bench||0} • INF ${s.inf||0} • OF ${s.out||0}</span></div>`}).join('')+'</div>':'<div class="empty-history">No saved games yet.</div>'}function resetSeasonHistory(){if(confirm('Reset ALL saved season history? This cannot be undone.')){localStorage.removeItem(HISTORY_KEY);renderHistory()}}
+const FIELD_COORDS={P:[50,68],C:[50,88],'1B':[75,68],'2B':[63,56],'3B':[25,68],SS:[37,56],LF:[16,35],CF:[50,23],RF:[84,35],LC:[36,27],RC:[64,27]};function openGameDay(){if(!currentGame)return alert('Generate a lineup first.');if(!currentGame.gameDayStarted){completedInnings=new Set();currentGame.gameDayStarted=true}gameDayInning=0;gameDayMode='field';$('builderView').classList.add('hidden');$('gameDayView').classList.remove('hidden');renderGameDay()}function closeGameDay(){$('gameDayView').classList.add('hidden');$('builderView').classList.remove('hidden')}
+function renderGameDay(){const l=currentGame.lineups[gameDayInning],lineups=currentGame.lineups;$('gdTeam').textContent=currentGame.team;$('gdFormat').textContent=`${currentGame.fieldCount} PLAYERS • ${lineups.length} INNINGS`;$('gdInningBig').textContent=gameDayInning+1;$('gdInningOf').textContent=`OF ${lineups.length}`;$('gdInnings').innerHTML='';lineups.forEach((_,i)=>{const b=document.createElement('button');b.textContent=completedInnings.has(i)?'✓':i+1;b.className=(i===gameDayInning?'active ':'')+(completedInnings.has(i)?'completed':'');b.onclick=()=>{gameDayInning=i;renderGameDay()};$('gdInnings').appendChild(b)});$('gdPlayers').innerHTML='';l.POSITIONS.forEach(pos=>{const n=l.assigned[pos];if(!n)return;const [x,y]=FIELD_COORDS[pos],d=document.createElement('button');d.className='gd-player';d.style.left=x+'%';d.style.top=y+'%';d.innerHTML=`<span class="gd-pos">${pos}</span><span class="gd-name">${esc(n)}</span>`;d.onclick=()=>openPositionChange(pos);$('gdPlayers').appendChild(d)});$('gdBench').innerHTML=(l.bench||[]).map(n=>`<button data-bench="${esc(n)}">${esc(n)}</button>`).join('')||'<span>Everyone fields</span>';$('gdBenchCount').textContent=l.bench.length?`${l.bench.length} sitting`:'Everyone fields';document.querySelectorAll('[data-bench]').forEach(b=>b.onclick=()=>openBenchChange(b.dataset.bench));const done=completedInnings.has(gameDayInning);$('gdComplete').disabled=done;$('gdComplete').textContent=done?'✓ INNING COMPLETE':'✓ COMPLETE INNING';renderBookkeeping();setGameDayMode(gameDayMode)}
+function changeInning(d){gameDayInning=Math.max(0,Math.min(currentGame.lineups.length-1,gameDayInning+d));renderGameDay()}function showSheet(t,x,body=''){$('gdSheetTitle').textContent=t;$('gdSheetText').textContent=x;$('gdSheetBody').innerHTML=body;$('gdSheet').classList.remove('hidden')}function closeSheet(){$('gdSheet').classList.add('hidden')}function lineupPlayerPosition(l,n){for(const p of l.POSITIONS)if(l.assigned[p]===n)return p;return l.bench.includes(n)?'BENCH':''}
+function swapPlayersInInning(a,b){if(completedInnings.has(gameDayInning))return;const l=currentGame.lineups[gameDayInning],pa=lineupPlayerPosition(l,a),pb=lineupPlayerPosition(l,b);if(pa==='BENCH'){l.bench=l.bench.filter(n=>n!==a);l.bench.push(b);l.assigned[pb]=a}else if(pb==='BENCH'){l.bench=l.bench.filter(n=>n!==b);l.bench.push(a);l.assigned[pa]=b}else{l.assigned[pa]=b;l.assigned[pb]=a}closeSheet();renderGameDay()}function openPositionChange(pos){if(completedInnings.has(gameDayInning))return;const l=currentGame.lineups[gameDayInning],n=l.assigned[pos],all=[...l.POSITIONS.map(p=>l.assigned[p]),...l.bench].filter(x=>x&&x!==n);showSheet(`Change ${pos}`,`${n} is currently playing ${pos}.`,`<div class="gd-choice-list">${all.map(x=>`<button data-swap="${esc(x)}">${esc(x)}<small>${lineupPlayerPosition(l,x)}</small></button>`).join('')}</div>`);document.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>swapPlayersInInning(n,b.dataset.swap))}function openBenchChange(n){const l=currentGame.lineups[gameDayInning],all=l.POSITIONS.map(p=>l.assigned[p]).filter(Boolean);showSheet(`Put ${n} in`,'Choose who to replace.',`<div class="gd-choice-list">${all.map(x=>`<button data-swap="${esc(x)}">${esc(x)}<small>${lineupPlayerPosition(l,x)}</small></button>`).join('')}</div>`);document.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>swapPlayersInInning(n,b.dataset.swap))}
+function openChangeMenu(){showSheet('Game Changes','Make a one-inning swap, or handle a roster change for the rest of the game.',`<button class="gd-sheet-action danger-action" id="gdUnavailable">PLAYER LEFT GAME</button><button class="gd-sheet-action" id="gdJoined">PLAYER JOINED / RETURNED</button><div class="regen-note">Roster changes regenerate only unfinished innings. Completed innings stay locked and count toward fairness.</div>`);$('gdUnavailable').onclick=openUnavailableMenu;$('gdJoined').onclick=openJoinedMenu}
+function openUnavailableMenu(){const roster=currentGame.roster.filter(p=>!currentGame.departed.includes(p.name));showSheet('Player Left Game','Choose the player. FairFielding will preserve completed innings and rebalance every unfinished inning.',`<div class="gd-choice-list">${roster.map(p=>`<button data-out="${esc(p.name)}">${esc(p.name)}</button>`).join('')}</div>`);document.querySelectorAll('[data-out]').forEach(b=>b.onclick=()=>markUnavailable(b.dataset.out))}
+function firstUnfinished(){for(let i=0;i<currentGame.lineups.length;i++)if(!completedInnings.has(i))return i;return currentGame.lineups.length}
+function regenerateRemaining(reason){const start=firstUnfinished();if(start>=currentGame.lineups.length)return alert('All innings are already complete.');const roster=currentGame.roster.filter(p=>!currentGame.departed.includes(p.name));if(roster.length<currentGame.fieldCount)return alert(`Only ${roster.length} players remain, but this game is set for ${currentGame.fieldCount} fielders. Change the field format or make manual substitutions.`);const past=statLineups(currentGame.lineups,start),future=buildFuture(roster,start,currentGame.lineups.length,currentGame.fieldCount,currentGame.batteries,past);currentGame.lineups=[...currentGame.lineups.slice(0,start),...future];currentGame.stats=statLineups(currentGame.lineups);gameDayInning=start;closeSheet();renderGameDay();setTimeout(()=>alert(`${reason}\n\nInnings 1–${start} stayed locked. Innings ${start+1}–${currentGame.lineups.length} were regenerated using actual bench and position history.`),50)}
+function markUnavailable(name){if(!confirm(`${name} left the game? Completed innings will stay exactly as played, and all unfinished innings will be regenerated.`))return;if(!currentGame.departed.includes(name))currentGame.departed.push(name);regenerateRemaining(`${name} removed from the active roster.`)}
+function openJoinedMenu(){const gone=currentGame.departed;if(!gone.length)return showSheet('Player Joined / Returned','No players are currently marked as having left this game.');showSheet('Player Joined / Returned','Choose a player to return. Earlier innings remain untouched.',`<div class="gd-choice-list">${gone.map(n=>`<button data-in="${esc(n)}">${esc(n)}</button>`).join('')}</div>`);document.querySelectorAll('[data-in]').forEach(b=>b.onclick=()=>{currentGame.departed=currentGame.departed.filter(n=>n!==b.dataset.in);regenerateRemaining(`${b.dataset.in} returned to the active roster.`)})}
+function completeCurrentInning(){if(completedInnings.has(gameDayInning))return;completedInnings.add(gameDayInning);if(gameDayInning<currentGame.lineups.length-1){gameDayInning++;renderGameDay()}else showSheet('Game Complete','All innings are complete. Save the actual Game Day results to season history.',`<button class="primary" id="gdSaveActual">SAVE GAME TO SEASON</button>`);const b=$('gdSaveActual');if(b)b.onclick=saveActualGame}function saveActualGame(){if(currentGame.saved)return alert('This game is already saved.');if(completedInnings.size!==currentGame.lineups.length)return alert('Complete every inning first.');currentGame.stats=statLineups(currentGame.lineups);saveCurrentGame();closeSheet();alert('Game saved. Season history reflects what actually happened.')}
+function ensureBook(){if(!currentGame.book)currentGame.book={pitchers:{},count:{balls:0,strikes:0},undo:[]}}function pitcherName(){return currentGame?.lineups?.[gameDayInning]?.assigned?.P||'—'}function pitcherStat(n){ensureBook();return currentGame.book.pitchers[n]||(currentGame.book.pitchers[n]={pitches:0,balls:0,strikes:0,ks:0,walks:0,hits:0,runs:0,batters:0,outs:0})}function pushUndo(){currentGame.book.undo.push(JSON.stringify({pitchers:currentGame.book.pitchers,count:currentGame.book.count}));if(currentGame.book.undo.length>30)currentGame.book.undo.shift()}function resetCount(){currentGame.book.count={balls:0,strikes:0}}function pitch(type){if(completedInnings.has(gameDayInning))return;pushUndo();const s=pitcherStat(pitcherName()),c=currentGame.book.count;s.pitches++;if(type==='ball'){s.balls++;if(++c.balls>=4){s.walks++;s.batters++;resetCount()}}if(type==='strike'){s.strikes++;if(++c.strikes>=3){s.ks++;s.outs++;s.batters++;resetCount()}}if(type==='foul'){s.strikes++;if(c.strikes<2)c.strikes++}renderBookkeeping()}function plateResult(t){if(completedInnings.has(gameDayInning))return;pushUndo();const s=pitcherStat(pitcherName());if(t==='out'){s.outs++;s.batters++}if(t==='hit'){s.hits++;s.batters++}if(t==='walk'){s.walks++;s.batters++}if(t==='k'){s.ks++;s.outs++;s.batters++}resetCount();renderBookkeeping()}function addRun(){pushUndo();pitcherStat(pitcherName()).runs++;renderBookkeeping()}function undoBook(){const x=currentGame.book.undo.pop();if(x){const o=JSON.parse(x);currentGame.book.pitchers=o.pitchers;currentGame.book.count=o.count;renderBookkeeping()}}function setGameDayMode(m){gameDayMode=m;$('gdFieldPanel').classList.toggle('hidden',m!=='field');$('gdBookPanel').classList.toggle('hidden',m!=='book');$('fieldTab').classList.toggle('active',m==='field');$('battingTab').classList.toggle('active',m==='book')}function renderBookkeeping(){if(!currentGame)return;ensureBook();const n=pitcherName(),s=pitcherStat(n),c=currentGame.book.count;$('bkPitcher').textContent=n;$('bkCount').textContent=`${c.balls} – ${c.strikes}`;['Pitches','Balls','Strikes','Ks','Walks','Hits','Runs','Batters'].forEach(k=>$("bk"+k).textContent=s[k.toLowerCase()]??s[k==='Ks'?'ks':k.toLowerCase()]??0);$('bkUndo').disabled=!currentGame.book.undo.length||completedInnings.has(gameDayInning)}
+let swipeStartX=null;$('gdSwipeArea').addEventListener('touchstart',e=>swipeStartX=e.changedTouches[0].clientX,{passive:true});$('gdSwipeArea').addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-swipeStartX;if(Math.abs(dx)>45)changeInning(dx<0?1:-1);swipeStartX=null},{passive:true});
+$('addPlayer').onclick=()=>{players.push({id:Date.now(),name:'',active:true,no1b:false});renderPlayers();renderBattery(false)};$('innings').onchange=()=>renderBattery(false);$('fielders').onchange=()=>{updatePositionNote();currentGame=null;$('resultsCard').classList.add('hidden')};$('generate').onclick=generate;$('reset').onclick=resetDemo;$('saveGame').onclick=saveCurrentGame;$('resetHistory').onclick=resetSeasonHistory;$('openGameDay').onclick=openGameDay;$('closeGameDay').onclick=closeGameDay;$('gdPrev').onclick=()=>changeInning(-1);$('gdNext').onclick=()=>changeInning(1);$('gameTools').onclick=openChangeMenu;$('fieldTab').onclick=()=>setGameDayMode('field');$('battingTab').onclick=()=>setGameDayMode('book');$('gdSheetClose').onclick=closeSheet;$('gdChange').onclick=openChangeMenu;$('gdComplete').onclick=completeCurrentInning;$('gdSheet').onclick=e=>{if(e.target.id==='gdSheet')closeSheet()};$('bkBall').onclick=()=>pitch('ball');$('bkStrike').onclick=()=>pitch('strike');$('bkFoul').onclick=()=>pitch('foul');$('bkOut').onclick=()=>plateResult('out');$('bkHit').onclick=()=>plateResult('hit');$('bkWalk').onclick=()=>plateResult('walk');$('bkK').onclick=()=>plateResult('k');$('bkRun').onclick=addRun;$('bkUndo').onclick=undoBook;resetDemo();
