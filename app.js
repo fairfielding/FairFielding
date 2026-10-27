@@ -12,7 +12,59 @@ function resetDemo(){players=demoPlayers.map((p,i)=>({id:Date.now()+i,name:p[0],
 function renderPlayers(){const b=$('players');b.innerHTML='';players.forEach(p=>{const r=document.createElement('div');r.className='player-row';r.innerHTML=`<input type="checkbox" ${p.active?'checked':''}><input class="pname" value="${esc(p.name)}"><label class="no1b"><input type="checkbox" ${p.no1b?'checked':''}>No 1B</label><label class="bat-rating">Bat<select>${[1,2,3,4,5].map(x=>`<option ${coachRating(p.name)===x?'selected':''}>${x}</option>`).join('')}</select></label><button class="remove">×</button>`;const i=r.querySelectorAll('input');i[0].onchange=e=>{p.active=e.target.checked;renderBattery(false)};i[1].oninput=e=>{p.name=e.target.value;renderBattery(false)};i[2].onchange=e=>p.no1b=e.target.checked;r.querySelector('.bat-rating select').onchange=e=>setCoachRating(p.name,e.target.value);r.querySelector('.remove').onclick=()=>{players=players.filter(x=>x.id!==p.id);renderPlayers();renderBattery(false)};b.appendChild(r)})}
 function batterySelections(){return[...document.querySelectorAll('.battery-row')].map(r=>[r.querySelector('.pitcher').value,r.querySelector('.catcher').value])}function renderBattery(useDemo=false){const count=+$('innings').value,old=useDemo?batteryDemo:batterySelections(),names=activePlayers().map(p=>p.name),b=$('battery');b.innerHTML='';for(let x=0;x<count;x++){const r=document.createElement('div');r.className='battery-row';const opts='<option value="">Choose…</option>'+names.map(n=>`<option>${esc(n)}</option>`).join('');r.innerHTML=`<b>Inn ${x+1}</b><label>Pitcher<select class="pitcher">${opts}</select></label><label>Catcher<select class="catcher">${opts}</select></label>`;if(old[x]){r.querySelector('.pitcher').value=old[x][0]||'';r.querySelector('.catcher').value=old[x][1]||''}b.appendChild(r)}}
 function statLineups(lineups,end=lineups.length){const s={};for(let i=0;i<end;i++){const l=lineups[i];l.POSITIONS.forEach(pos=>{const n=l.assigned[pos];if(!n)return;const t=s[n]||(s[n]=emptyStat());t.positions[pos]=(t.positions[pos]||0)+1;(outfield().includes(pos)?t.out++:t.inf++);t.lastPos=pos});(l.bench||[]).forEach(n=>{const t=s[n]||(s[n]=emptyStat());t.bench++;t.lastPos='BENCH'})}return s}
-function buildFuture(roster,start,innings,fieldCount,batteries,pastStats){const POS=positions(),OF=outfield(),open=POS.filter(p=>p!=='P'&&p!=='C'),names=roster.map(p=>p.name),future=[];const running={};names.forEach(n=>{const p=pastStats[n]||emptyStat(),se=seasonStat(n);running[n]={bench:p.bench,inf:p.inf,out:p.out,lastPos:p.lastPos,positions:{...(p.positions||{})},season:se}});for(let inn=start;inn<innings;inn++){let [P,C]=batteries[inn]||[];if(!names.includes(P))P='';if(!names.includes(C)||C===P)C='';const rankBattery=exclude=>[...names].filter(n=>n!==exclude).sort((a,b)=>(running[a].inf+running[a].out)-(running[b].inf+running[b].out)||a.localeCompare(b))[0];if(!P)P=rankBattery('');if(!C)C=rankBattery(P);const locked=new Set([P,C]);const benchN=Math.max(0,names.length-fieldCount);const bench=[...names].filter(n=>!locked.has(n)).sort((a,b)=>running[a].bench-running[b].bench||(running[a].lastPos==='BENCH'?1:0)-(running[b].lastPos==='BENCH'?1:0)||a.localeCompare(b)).slice(0,benchN);const available=names.filter(n=>!locked.has(n)&&!bench.includes(n)),assigned={P,C},used=new Set([P,C]);for(const pos of open){let cand=available.filter(n=>!used.has(n)&&!(pos==='1B'&&roster.find(p=>p.name===n)?.no1b));if(!cand.length)cand=available.filter(n=>!used.has(n));cand.sort((a,b)=>{const A=running[a],B=running[b],aOF=OF.includes(pos);const catA=aOF?A.out:A.inf,catB=aOF?B.out:B.inf;return catA-catB+(A.lastPos===pos?2:0)-(B.lastPos===pos?2:0)||(A.positions[pos]||0)-(B.positions[pos]||0)||(A.season.positions?.[pos]||0)-(B.season.positions?.[pos]||0)||a.localeCompare(b)});const n=cand[0];if(n){assigned[pos]=n;used.add(n)}}const l={assigned,bench,POSITIONS:POS};future.push(l);const one=statLineups([l],1);Object.entries(one).forEach(([n,v])=>{const r=running[n];r.bench+=v.bench;r.inf+=v.inf;r.out+=v.out;r.lastPos=v.lastPos;Object.entries(v.positions).forEach(([p,c])=>r.positions[p]=(r.positions[p]||0)+c)})}return future}
+function buildFuture(roster,start,innings,fieldCount,batteries,pastStats){
+ const POS=positions(),OF=outfield(),open=POS.filter(p=>p!=='P'&&p!=='C'),names=roster.map(p=>p.name),future=[];
+ const running={};names.forEach(n=>{const p=pastStats[n]||emptyStat(),se=seasonStat(n);running[n]={bench:p.bench,inf:p.inf,out:p.out,lastPos:p.lastPos,positions:{...(p.positions||{})},season:se}});
+ const benchN=Math.max(0,names.length-fieldCount),futureInnings=Math.max(0,innings-start),futureSlots=benchN*futureInnings;
+ const benchPlan=Array.from({length:futureInnings},()=>[]);
+ if(benchN>0&&futureInnings>0){
+  const pastBench=Object.fromEntries(names.map(n=>[n,running[n].bench||0]));
+  const futureTarget=Object.fromEntries(names.map(n=>[n,0]));
+  // Water-fill the remaining bench slots: always give the next sit to the player
+  // with the lowest projected TOTAL bench count. This makes exact equality a hard
+  // target whenever the P/C locks allow it (e.g. 12 players / 12 bench slots = 1 each).
+  for(let slot=0;slot<futureSlots;slot++){
+   const n=[...names].sort((a,b)=>(pastBench[a]+futureTarget[a])-(pastBench[b]+futureTarget[b])||(seasonStat(a).bench||0)-(seasonStat(b).bench||0)||a.localeCompare(b))[0];
+   futureTarget[n]++;
+  }
+  function combos(arr,k,startAt=0,pick=[],out=[]){if(pick.length===k){out.push([...pick]);return out}for(let i=startAt;i<=arr.length-(k-pick.length);i++){pick.push(arr[i]);combos(arr,k,i+1,pick,out);pick.pop()}return out}
+  const options=Array.from({length:futureInnings},(_,j)=>{const inn=start+j,[P,C]=batteries[inn]||[];const locked=new Set([P,C].filter(Boolean));return combos(names.filter(n=>!locked.has(n)),benchN)});
+  const remaining={...futureTarget};
+  // Chronological DFS lets consecutive-bench avoidance work correctly while still
+  // refusing any solution that misses the exact whole-game bench target.
+  function solve(j){
+   if(j===futureInnings)return names.every(n=>remaining[n]===0);
+   const prev=j===0?new Set(names.filter(n=>(pastStats[n]?.lastPos||'')==='BENCH')):new Set(benchPlan[j-1]);
+   const valid=options[j].filter(g=>g.every(n=>remaining[n]>0));
+   valid.sort((A,B)=>{
+    const ca=A.reduce((s,n)=>s+(prev.has(n)?1:0),0),cb=B.reduce((s,n)=>s+(prev.has(n)?1:0),0);
+    const sa=A.reduce((s,n)=>s+(seasonStat(n).bench||0),0),sb=B.reduce((s,n)=>s+(seasonStat(n).bench||0),0);
+    return ca-cb||sa-sb||A.join('|').localeCompare(B.join('|'));
+   });
+   for(const g of valid){benchPlan[j]=g;g.forEach(n=>remaining[n]--);if(solve(j+1))return true;g.forEach(n=>remaining[n]++);benchPlan[j]=[]}
+   return false;
+  }
+  const exact=solve(0);
+  if(!exact){
+   // Only fall back when locks truly make the exact target impossible.
+   const projected={...pastBench};
+   for(let j=0;j<futureInnings;j++){
+    const inn=start+j,[P,C]=batteries[inn]||[],locked=new Set([P,C].filter(Boolean)),prev=j===0?new Set(names.filter(n=>(pastStats[n]?.lastPos||'')==='BENCH')):new Set(benchPlan[j-1]);
+    benchPlan[j]=names.filter(n=>!locked.has(n)).sort((a,b)=>projected[a]-projected[b]||(prev.has(a)?1:0)-(prev.has(b)?1:0)||(seasonStat(a).bench||0)-(seasonStat(b).bench||0)||a.localeCompare(b)).slice(0,benchN);
+    benchPlan[j].forEach(n=>projected[n]++);
+   }
+  }
+ }
+ for(let inn=start;inn<innings;inn++){
+  let [P,C]=batteries[inn]||[];if(!names.includes(P))P='';if(!names.includes(C)||C===P)C='';
+  const rankBattery=exclude=>[...names].filter(n=>n!==exclude).sort((a,b)=>(running[a].inf+running[a].out)-(running[b].inf+running[b].out)||a.localeCompare(b))[0];if(!P)P=rankBattery('');if(!C)C=rankBattery(P);
+  const locked=new Set([P,C]),bench=[...(benchPlan[inn-start]||[])];
+  const available=names.filter(n=>!locked.has(n)&&!bench.includes(n)),assigned={P,C},used=new Set([P,C]);
+  for(const pos of open){let cand=available.filter(n=>!used.has(n)&&!(pos==='1B'&&roster.find(p=>p.name===n)?.no1b));if(!cand.length)cand=available.filter(n=>!used.has(n));cand.sort((a,b)=>{const A=running[a],B=running[b],aOF=OF.includes(pos);const catA=aOF?A.out:A.inf,catB=aOF?B.out:B.inf;return catA-catB+(A.lastPos===pos?2:0)-(B.lastPos===pos?2:0)||(A.positions[pos]||0)-(B.positions[pos]||0)||(A.season.positions?.[pos]||0)-(B.season.positions?.[pos]||0)||a.localeCompare(b)});const n=cand[0];if(n){assigned[pos]=n;used.add(n)}}
+  const l={assigned,bench,POSITIONS:POS};future.push(l);const one=statLineups([l],1);Object.entries(one).forEach(([n,v])=>{const r=running[n];r.bench+=v.bench;r.inf+=v.inf;r.out+=v.out;r.lastPos=v.lastPos;Object.entries(v.positions).forEach(([p,c])=>r.positions[p]=(r.positions[p]||0)+c)})
+ }
+ return future
+}
 function generate(){const roster=activePlayers(),innings=+$('innings').value,fieldCount=+$('fielders').value,b=batterySelections();if(roster.length<fieldCount)return alert(`You need at least ${fieldCount} active players.`);for(let i=0;i<innings;i++)if(!b[i][0]||!b[i][1]||b[i][0]===b[i][1])return alert(`Choose a different pitcher and catcher for inning ${i+1}.`);const lineups=buildFuture(roster,0,innings,fieldCount,b,{}),stats=statLineups(lineups);currentGame={team:$('teamName').value||'Team',fieldCount,roster:JSON.parse(JSON.stringify(roster)),batteries:JSON.parse(JSON.stringify(b)),stats,lineups,originalLineups:JSON.parse(JSON.stringify(lineups)),saved:false,gameDayStarted:false,departed:[],book:{pitchers:{},count:{balls:0,strikes:0},undo:[]},bat:{order:generateBattingOrder(roster),index:0,stats:{},events:[],undo:[],saved:false}};completedInnings=new Set();renderResults(lineups,stats,[],fieldCount)}
 function renderResults(lineups,stats,warnings,fieldCount){$('resultTitle').textContent=`${$('teamName').value||'Team'} • ${fieldCount}-player Defensive Rotation`;$('warnings').innerHTML=warnings.length?warnings.map(w=>`<div class="warning">${esc(w)}</div>`).join(''):`<div class="ok">✓ Rotation generated with pitcher/catcher assignments, restrictions, and fairness history.</div>`;$('results').innerHTML=lineups.map((l,i)=>`<div class="inning"><h3>Inning ${i+1}</h3><table>${l.POSITIONS.map(p=>`<tr><td>${p}</td><td>${esc(l.assigned[p]||'—')}</td></tr>`).join('')}${l.bench.length?`<tr><td>Bench</td><td>${l.bench.map(esc).join(', ')}</td></tr>`:''}</table></div>`).join('');const h=loadHistory();$('summary').innerHTML='<h3>Fairness check</h3><div class="summary-grid">'+Object.entries(stats).map(([n,s])=>{const o=h[n]||emptyStat();return`<div class="stat"><b>${esc(n)}</b><span>Game: Bench ${s.bench} • INF ${s.inf} • OF ${s.out}</span><span>If saved: Bench ${o.bench+s.bench} • INF ${o.inf+s.inf} • OF ${o.out+s.out}</span></div>`}).join('')+'</div>';$('saveGame').disabled=false;$('saveGame').textContent='Save This Game';$('resultsCard').classList.remove('hidden')}
 function saveCurrentGame(){if(!currentGame||currentGame.saved)return alert('Generate a lineup first, or this game has already been saved.');const h=loadHistory();Object.entries(currentGame.stats).forEach(([n,s])=>{const t=h[n]||emptyStat();t.bench+=s.bench;t.inf+=s.inf;t.out+=s.out;t.games++;Object.entries(s.positions||{}).forEach(([p,c])=>t.positions[p]=(t.positions[p]||0)+c);t.lastPos=s.lastPos||t.lastPos;h[n]=t});saveHistory(h);currentGame.saved=true;$('saveGame').disabled=true;$('saveGame').textContent='Game Saved ✓';renderHistory()}
