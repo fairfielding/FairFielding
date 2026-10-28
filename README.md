@@ -1,4 +1,4 @@
-# FairFielding v0.11.2
+# FairFielding v0.11.3
 
 Game Plan UI overhaul.
 
@@ -10,14 +10,17 @@ Game Plan UI overhaul.
 - Preserves v0.10.1 hard bench-fairness solver, smart mid-game regeneration, live batting ratings and pitching bookkeeping
 
 
-## v0.11.2
+## v0.11.3
 - Fixed iPhone roster rows to use the full card width.
 - Player, No 1B, batting rating, and delete controls now stay on one compact row.
 - Added safe-area spacing for the sticky top navigation.
 
 
-## v0.11.2
+## v0.11.3
 - Rebuilt mobile roster markup instead of patching the desktop grid.
 - Player name now gets the full flexible row width.
 - Active checkbox and remove button stay beside the name; No 1B and Bat rating sit cleanly underneath.
 - Setup/Game Plan/History navigation no longer sticks over iPhone content/status area.
+
+
+v0.11.3 uses versioned CSS/JS filenames to prevent stale installed-PWA assets from older builds. The roster row is explicitly structured as active checkbox + full-width name + remove, with No 1B and Bat rating on the second line.
