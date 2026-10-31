@@ -38,3 +38,10 @@ Game Day **Player Joined / Returned** now includes players who were unchecked at
 - Late-arriving players automatically sit the inning in which they are added; existing players stay on the field.
 - The arrival bench inning counts toward fairness, and later unfinished innings rebalance from the actual game history.
 - Added a subtle fixed ballpark/diamond watermark behind the light app screens.
+
+
+## v0.11.7
+- Reworked the light-screen aesthetic with a clearly visible fixed baseball strategy-field backdrop.
+- Cards are now translucent glass panels so the field can show through while content remains readable.
+- Added subtle blur, field striping, baselines/diamond geometry, and translucent navigation.
+- Game Day styling and v0.11.6 late-arrival behavior are unchanged.
