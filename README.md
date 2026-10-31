@@ -26,5 +26,9 @@ Game Plan UI overhaul.
 v0.11.3 uses versioned CSS/JS filenames to prevent stale installed-PWA assets from older builds. The roster row is explicitly structured as active checkbox + full-width name + remove, with No 1B and Bat rating on the second line.
 
 
-## v0.11.4
+## v0.11.5
 Visual refresh: upgraded app shell, cards, buttons, game-plan presentation, roster styling, and Game Day/scoreboard aesthetics. Core lineup and bookkeeping logic remains unchanged.
+
+
+## v0.11.5
+Game Day **Player Joined / Returned** now includes players who were unchecked at game generation (such as MAYBE players), not only players who left after the game started. Adding one preserves completed innings and regenerates only unfinished innings using fairness history.
