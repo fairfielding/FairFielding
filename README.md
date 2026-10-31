@@ -45,3 +45,7 @@ Game Day **Player Joined / Returned** now includes players who were unchecked at
 - Cards are now translucent glass panels so the field can show through while content remains readable.
 - Added subtle blur, field striping, baselines/diamond geometry, and translucent navigation.
 - Game Day styling and v0.11.6 late-arrival behavior are unchanged.
+
+
+## v0.11.8
+Visual-only refresh: fixed visible baseball-field backdrop, translucent glass cards, cache-busted CSS/JS. Game logic unchanged from v0.11.7.
